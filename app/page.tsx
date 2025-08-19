@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCommonStore } from "@/app/_store/commonStore";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase";
+import { toast } from "react-hot-toast";
 
 const games = [
   { name: "MINES", link: "/mines", logo: <Gem size={48} />, img: "/assets/mines.png" },
@@ -23,6 +24,13 @@ export default function Home() {
   const [dailyCountdown, setDailyCountdown] = useState("");
   const [weeklyCountdown, setWeeklyCountdown] = useState("");
 
+  const [num1, setNum1] = useState(0);
+  const [num2, setNum2] = useState(0);
+  const [answer, setAnswer] = useState("");
+  const [answerState, setAnswerState] = useState<"idle" | "correct" | "wrong">("idle");
+
+  const [leaderboard, setLeaderboard] = useState<{ username: string; balance: number }[]>([]);
+
   const [isSuper, setIsSuper] = useState(false);
 
   useEffect(() => {
@@ -36,6 +44,148 @@ export default function Home() {
   }
   // Only run when `user` first becomes available
 }, [user]);
+
+  const fetchLeaderboard = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .select("username,balance")
+        .order("balance", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      if (data) setLeaderboard(data);
+    } catch (err) {
+      console.error("Failed to fetch leaderboard:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, []);
+
+const generateQuestion = () => {
+    setNum1(Math.floor(Math.random() * 20) + 1);
+    setNum2(Math.floor(Math.random() * 20) + 1);
+    setAnswer("");
+    setAnswerState("idle");
+  };
+
+  useEffect(() => {
+    generateQuestion();
+  }, []);
+
+  const submitAnswer = async () => {
+    if (!user) return;
+
+    const correct = parseInt(answer) === num1 + num2;
+
+    if (correct) {
+      setAnswerState("correct");
+      try {
+        const { data: userDoc, error: fetchError } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (fetchError || !userDoc) throw fetchError || new Error("User not found");
+
+        const newBalance = (userDoc.balance || 0) + 1;
+        const { error: updateError } = await supabase
+          .from("users")
+          .update({ balance: newBalance })
+          .eq("id", user.id);
+
+        if (updateError) throw updateError;
+        setBalance(newBalance);
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      setAnswerState("wrong");
+    }
+
+    // After 1 second, reset button and generate new question
+    setTimeout(() => {
+      generateQuestion();
+    }, 1000);
+  };
+
+
+  // Inside your Home component, after reward state hooks:
+const [promoCode, setPromoCode] = useState("");
+const [modalMessage, setModalMessage] = useState("");
+const [modalVisible, setModalVisible] = useState(false);
+
+const redeemPromo = async () => {
+  if (!user) {
+    setModalMessage("You must be logged in to redeem promo codes!");
+    setModalVisible(true);
+    return;
+  }
+
+  try {
+    const { data: promo, error } = await supabase
+      .from("promo_codes")
+      .select("*")
+      .eq("code", promoCode.toUpperCase())
+      .maybeSingle(); // allows 0 rows without throwing
+
+    if (error) throw error;
+
+    if (!promo) {
+      setModalMessage("Invalid promo code!");
+      setModalVisible(true);
+      return;
+    }
+
+    // Check if user already redeemed it
+    const usedBy: string[] = promo.used_by || [];
+    if (usedBy.includes(user.id)) {
+      setModalMessage("You have already redeemed this code!");
+      setModalVisible(true);
+      return;
+    }
+
+    // Update user balance
+    const { data: userDoc, error: fetchError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (fetchError || !userDoc) throw fetchError || new Error("User not found");
+
+    const newBalance = (userDoc.balance || 0) + promo.amount;
+
+    // Transaction: update user balance
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({ balance: newBalance })
+      .eq("id", user.id);
+
+    if (updateError) throw updateError;
+
+    // Mark code as used
+    const { error: promoUpdateError } = await supabase
+      .from("promo_codes")
+      .update({ used_by: [...usedBy, user.id] })
+      .eq("id", promo.id);
+
+    if (promoUpdateError) throw promoUpdateError;
+
+    setBalance(newBalance);
+    setPromoCode("");
+    setModalMessage(`Successfully redeemed ${promo.amount} steaks!`);
+    setModalVisible(true);
+  } catch (err) {
+    console.error(err);
+    setModalMessage("Failed to redeem promo code.");
+    setModalVisible(true);
+  }
+};
+
 
   const claimReward = async (type: "daily" | "weekly") => {
     if (!user) return;
@@ -218,6 +368,39 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Earn Steak Section */}
+      <section className="w-full flex flex-col items-center text-center mt-20 mb-20">
+        <h1 className="text-4xl sm:text-6xl font-bold mb-4 flex flex-col items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 text-white">
+            Earn <span className="text-success">Steak</span>
+          </div>
+        </h1>
+        <p className="text-gray-400 mb-4">Solve the addition problem to earn +1 steak!</p>
+
+        <div className="flex gap-2 items-center mb-2">
+          <span className="text-white text-xl">{num1} + {num2} =</span>
+          <input
+            type="number"
+            value={answer}
+            onChange={(e) => setAnswer(e.target.value)}
+            className="px-4 py-2 rounded-md bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-success"
+          />
+          <button
+          onClick={submitAnswer}
+          className={`px-4 py-2 rounded-md font-medium text-black transition-colors w-24 ${
+            answerState === "idle"
+              ? "bg-success hover:bg-green-600"
+              : answerState === "correct"
+              ? "bg-green-500"
+              : "bg-red-500"
+          }`}
+          >
+          {answerState === "correct" ? "✔" : answerState === "wrong" ? "✖" : "Submit"}
+          </button>
+        </div>
+      </section>
+
+
       {/* Rewards */}
       <section className="w-full flex flex-col items-center text-center mt-6">
         <h1 className="text-4xl sm:text-6xl font-bold mb-4 flex flex-col items-center gap-2 sm:gap-3">
@@ -244,6 +427,66 @@ export default function Home() {
           </button>
         </div>
       </section>
+      
+      {/* Promo Codes */}
+      <section className="w-full flex flex-col items-center text-center mt-8">
+        <p className="text-xl text-gray-500">Promo Codes</p>
+        <br />
+
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={promoCode}
+            onChange={(e) => setPromoCode(e.target.value)}
+            placeholder="Enter code..."
+            className="px-4 py-2 rounded-md bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-success"
+          />
+          <button
+            onClick={redeemPromo}
+            className="px-6 py-2 bg-success hover:bg-green-600 rounded-md text-black font-medium"
+          >
+            Redeem
+          </button>
+        </div>
+      </section>
+
+      <section className="w-full max-w-4xl flex flex-col items-center text-center mt-20 mb-20">
+        <h2 className="text-4xl text-white font-bold mb-6">🏆 Top Players</h2>
+        <div className="w-full bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+          <div className="grid grid-cols-[1fr_2fr_1fr] bg-gray-900 text-gray-400 font-semibold px-4 py-2">
+            <span>Rank</span>
+            <span>Username</span>
+            <span>Balance</span>
+          </div>
+          {leaderboard.map((user, idx) => (
+            <div
+              key={user.username}
+              className={`grid grid-cols-[1fr_2fr_1fr] px-4 py-3 border-b border-gray-700 ${
+                idx % 2 === 0 ? "bg-gray-800" : "bg-gray-700/50"
+              } hover:bg-gray-600 transition-colors`}
+            >
+              <span className="text-yellow-400 font-bold">{idx + 1}</span>
+              <span className="font-medium text-white">{user.username}</span>
+              <span className="text-green-400 font-semibold">{user.balance}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Promo Code Modal */}
+      {modalVisible && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 text-white p-6 rounded-lg w-96 flex flex-col items-center">
+            <p className="mb-4 text-center">{modalMessage}</p>
+            <button
+              onClick={() => setModalVisible(false)}
+              className="px-4 py-2 bg-success hover:bg-green-600 rounded-md text-black font-medium"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

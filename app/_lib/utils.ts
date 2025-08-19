@@ -10,18 +10,17 @@ export function calculateWinningAmount(
 }
 
 export function calculatePerMineMultiplier(numberOfMines: number): number {
-  const totalTiles = 25;
-  if (numberOfMines === 0) {
-    return 1;
-  }
-  const k = 1.5; // Scaling factor
-  const totalMultiplier = Math.pow(
-    totalTiles / (totalTiles - numberOfMines),
-    k
-  );
-  const perMineMultiplier = totalMultiplier / numberOfMines;
+  if (numberOfMines <= 0) return 1;
+
+  // Base multiplier increase per mine (small number)
+  const base = 0.2; 
+
+  // Add diminishing returns so more mines don't explode the multiplier
+  const perMineMultiplier = 1 + base * Math.log2(numberOfMines + 1);
+
   return perMineMultiplier;
 }
+
 
 export function calculateBaseMultiplier(numberOfMines: number): number {
   const baseMultiplier = 1 + numberOfMines * 0.1;

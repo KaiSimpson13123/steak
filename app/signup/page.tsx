@@ -70,6 +70,7 @@ export default function SignupPage() {
           onChange={(e) => setUsername(e.target.value)}
           className="p-2 rounded bg-gray-800 text-white"
           required
+          maxLength={25}
         />
         <input
           type="email"
