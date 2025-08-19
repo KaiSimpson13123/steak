@@ -3,6 +3,7 @@ import React from "react";
 import { useCommonStore } from "@/app/_store/commonStore";
 import Link from "next/link";
 import { Coffee, Github, Twitter } from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function Footer() {
   const handleLogoClick = () => {
@@ -13,12 +14,15 @@ export default function Footer() {
       targetSection.scrollIntoView({ behavior: "smooth" });
     }
   };
-  const { balance, clearCommonState } = useCommonStore();
+  const { balance, clearCommonState, setBalance } = useCommonStore();
+  const { user, logout } = useAuth();
   const resetMoney = () => {
     const pass = prompt("Enter Password");
 
+    if (!user) return;
+
     if (pass === process.env.NEXT_PUBLIC_PASSWORD) {
-      clearCommonState();
+      setBalance(1000, user.id);
     } else {
       alert("Password Incorrect");
     }

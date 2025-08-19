@@ -3,12 +3,8 @@
 import { useState } from "react";
 import { Client, Account } from "appwrite";
 import { useRouter } from "next/navigation";
+import { supabase } from "../../lib/supabase";
 
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
-
-const account = new Account(client);
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,21 +13,22 @@ export default function LoginPage() {
   const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError("");
+    e.preventDefault();
+    setError("");
 
-  if (!email || !password) {
-    setError("Email and password are required");
-    return;
-  }
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-  try {
-    await account.createSession(email.trim(), password);
-    router.push("/");
-  } catch (err: any) {
-    setError(err.message || "Login failed");
-  }
-};
+      if (error) throw error;
+
+      router.push("/"); // logged in, session is automatically stored
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen text-white">
@@ -59,7 +56,16 @@ export default function LoginPage() {
         >
           Login
         </button>
-        <p>Need an account? <button className="underline" onClick={() => router.push("/signup")}>Signup</button></p>
+        <p>
+          Need an account?{" "}
+          <button
+            type="button"
+            className="underline"
+            onClick={() => router.push("/signup")}
+          >
+            Signup
+          </button>
+        </p>
         {error && <p className="text-red-400">{error}</p>}
       </form>
     </div>

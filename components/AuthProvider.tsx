@@ -1,37 +1,99 @@
 "use client";
 
-import { useEffect, useState, ReactNode } from "react";
-import { Client, Account } from "appwrite";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { supabase } from "../lib/supabase"; // your supabase client
+import { Session, User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
-
-const account = new Account(client);
-
-interface AuthProviderProps {
-  children: ReactNode;
+// Types for context
+interface AuthContextType {
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  signup: (email: string, password: string, username?: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
-export default function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<any>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Provider component
+export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const currentUser = await account.get();
-        setUser(currentUser);
-      } catch (err) {
-        console.log("User not logged in, redirecting...");
-        router.push("/login"); // redirect guests to login
-      }
+    // Get current session
+    const getSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
+      setLoading(false);
     };
-    checkUser();
-  }, [router]);
+    getSession();
 
-  if (!user) return <p className="text-white">Loading...</p>;
+    // Listen for auth state changes
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
-  return <>{children}</>;
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Signup function
+  const signup = async (email: string, password: string, username?: string) => {
+    setLoading(true);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { username },
+        emailRedirectTo: undefined // disables email verification redirect
+      },
+    });
+    if (error) throw error;
+    setUser(data.user ?? null);
+    setSession(data.session ?? null);
+    setLoading(false);
+  };
+
+  // Login function
+  const login = async (email: string, password: string) => {
+    setLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    setUser(data.user ?? null);
+    setSession(data.session ?? null);
+    setLoading(false);
+  };
+
+  // Logout function
+  const logout = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    setUser(null);
+    setSession(null);
+    setLoading(false);
+    router.push("/login");
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, session, loading, signup, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
+
+// Hook to use auth context
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
+  return context;
+};

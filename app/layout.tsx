@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "./_components/Navbar";
 import { Analytics } from "@vercel/analytics/next";
 import Footer from "./_components/Footer";
+import { AuthProvider } from "@/components/AuthProvider";
 
 const inter = Geist({ subsets: ["latin"] });
 
@@ -40,6 +41,9 @@ export const metadata: Metadata = {
     description: "Experience risk-free casino gaming with virtual currency",
     images: ["/assets/stake-logo.svg"],
   },
+  icons: {
+    icon: "/assets/logo.png", // ✅ sets favicon
+  },
 };
 
 export default function RootLayout({
@@ -50,10 +54,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Navbar />
-        {children}
-        <Analytics />
-        <Footer />
+        {/* Wrap everything in AuthProvider */}
+        <AuthProvider>
+          <Navbar />
+          {children}
+          <Analytics />
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );

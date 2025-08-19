@@ -18,6 +18,9 @@ import Matter, { IBodyDefinition } from "matter-js";
 import { binPayouts, getRandomBetween, RiskLevel, RowCount } from "./utils";
 import { usePlinkoStore } from "../../_store/plinkoStore";
 import { useCommonStore } from "@/app/_store/commonStore";
+import { useAuth } from "@/components/AuthProvider";
+
+const { user, logout } = useAuth();
 
 type BallFrictionsByRowCount = {
   friction: NonNullable<IBodyDefinition["friction"]>;
@@ -285,11 +288,12 @@ class PlinkoEngine {
       (pinX) => pinX < ball.position.x
     );
     if (binIndex !== -1 && binIndex < this.pinsLastRowXCoords.length - 1) {
+      if (!user) return;
       const multiplier = binPayouts[this.rowCount][this.riskLevel][binIndex];
       this.store.setMultiplier(multiplier);
       const newBalance = this.commonStore.balance - this.betAmount;
       console.log("newBalance", newBalance, this.betAmount, multiplier);
-      this.commonStore.setBalance(newBalance + this.betAmount * multiplier);
+      this.commonStore.setBalance(newBalance + this.betAmount * multiplier, user.id);
     }
 
     Matter.Composite.remove(this.engine.world, ball);

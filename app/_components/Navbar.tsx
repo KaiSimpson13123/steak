@@ -2,14 +2,41 @@
 "use client";
 
 import { useCommonStore } from "@/app/_store/commonStore";
-import { Beef } from "lucide-react";
+import { Beef, Crown } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
+import { useEffect, useState } from "react";
 
 export default function Navbar() {
-  const { balance } = useCommonStore();
+  const router = useRouter();
+  const { user, logout } = useAuth(); // get logged-in user and logout function
+
+  const { balance, fetchBalance } = useCommonStore();
+
+  const [isSuper, setIsSuper] = useState(false);
+
+  // ✅ fetch balance when user is logged in
+  useEffect(() => {
+    if (user?.id) {
+      fetchBalance(user.id);
+    }
+  }, [user, fetchBalance]);
+
+  useEffect(() => {
+  if (!user) return;
+
+  const username = user.user_metadata?.username;
+  if (username === "SmacklePackle") {
+    setIsSuper(true);
+  } else {
+    setIsSuper(false);
+  }
+  // Only run when `user` first becomes available
+}, [user]);
 
   // Convert balance from steaks to USD
-  const balanceInUSD = balance ? balance * 0.00001 : 0;
+  const balanceInUSD = balance ? balance * 0.000001 : 0;
 
   return (
     <nav className="top-0 left-0 right-0 z-50 backdrop-blur-lg bg-black/40 border-b border-white/10">
@@ -29,15 +56,44 @@ export default function Navbar() {
           </Link>
 
           <div className="flex items-center gap-3 sm:gap-4">
-            <div className="flex items-center gap-2 bg-white/5 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/10 text-white">
+            {/* Balance display */}
+            {user && (
+              <div className="flex items-center gap-2 bg-white/5 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/10 text-white">
               <Beef className="w-5 h-5 text-success" />
               <span className="text-base font-medium">
-                {balance?.toFixed(0) || "0"} Steaks
-              </span>
-              <span className="text-sm text-gray-300">
-                (${balanceInUSD.toFixed(2)})
+                {balance?.toFixed(2) || "0"} Steaks
               </span>
             </div>
+            )}
+            
+
+            {/* Show username and logout if logged in */}
+            {user ? (
+              <div className="flex items-center gap-3 bg-white/5 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/10 text-white">
+                <span className="font-medium">
+                  {user.user_metadata?.username || user.email}
+                </span>
+                <button
+                  onClick={() => router.push("/")}
+                  className="bg-green-500 hover:bg-green-600 px-3 py-1 rounded font-semibold text-yellow-200"
+                >
+                  <Crown/>
+                </button>
+                <button
+                  onClick={logout}
+                  className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded font-semibold"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => router.push("/login")}
+                className="bg-success hover:bg-success px-3 py-1 rounded font-semibold"
+              >
+                Login
+              </button>
+            )}
           </div>
         </div>
       </div>

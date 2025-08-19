@@ -3,6 +3,7 @@ import React from "react";
 import ConfigForDice from "./ConfigForDice";
 import DiceComponent from "./DiceComponent";
 import { useCommonStore } from "@/app/_store/commonStore";
+import { useAuth } from "@/components/AuthProvider";
 
 function DiceGameContainer() {
   const [multiplier, setMultiplier] = React.useState<number>(2);
@@ -17,6 +18,9 @@ function DiceGameContainer() {
       }[]
   >([]);
   const { setBalance, balance } = useCommonStore();
+  const { user, logout } = useAuth();
+
+  if (!user) return;
 
   const handleBet = (betAmount: number) => {
     // Validate bet amount
@@ -26,7 +30,8 @@ function DiceGameContainer() {
 
     // Deduct bet amount upfront
     const newBalanceAfterBet = balance - betAmount;
-    setBalance(newBalanceAfterBet);
+    setBalance(newBalanceAfterBet, user.id);
+    console.log(`user id: ${user.id}`);
 
     const randomNumber = Math.floor(Math.random() * 100) + 1;
     setTargetNumber(randomNumber);
@@ -39,7 +44,7 @@ function DiceGameContainer() {
       // Player wins - add winnings to already reduced balance
       const winnings = betAmount * multiplier;
       const finalBalance = newBalanceAfterBet + winnings;
-      setBalance(finalBalance);
+      setBalance(finalBalance, user.id);
       setResult([...result, { isWin: true, randomNumber }]);
     } else {
       // Player loses - bet was already deducted

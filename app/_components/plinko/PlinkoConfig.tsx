@@ -13,11 +13,14 @@ import {
 import { Coins, Beef } from "lucide-react";
 import React from "react";
 import { RiskLevel, RowCount } from "./utils";
+import { useAuth } from "@/components/AuthProvider";
 
 function PlinkoConfig({ dropBall }: { dropBall: () => void }) {
   const [inputValue, setInputValue] = React.useState<string>("");
   const [error, setError] = React.useState<string>("");
   const { balance, setBalance } = useCommonStore();
+  const { user, logout } = useAuth();
+  if (!user) return;
   const {
     riskLevel,
     setRiskLevel,
@@ -73,7 +76,7 @@ function PlinkoConfig({ dropBall }: { dropBall: () => void }) {
     }
 
     // Deduct money upfront when ball is dropped
-    setBalance(balance - betAmount);
+    setBalance(balance - betAmount, user.id);
     dropBall();
   };
 

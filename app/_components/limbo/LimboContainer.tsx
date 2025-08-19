@@ -5,6 +5,7 @@ import { generateWeightedRandom } from "@/lib/utils";
 import LimboConfig from "./LimboConfig";
 import { useLimboStore } from "@/app/_store/limboStore";
 import { useCommonStore } from "@/app/_store/commonStore";
+import { useAuth } from "@/components/AuthProvider";
 
 function LimboContainer() {
   const {
@@ -15,6 +16,7 @@ function LimboContainer() {
     multiplier,
   } = useLimboStore();
   const { balance, setBalance } = useCommonStore();
+  const { user, logout } = useAuth();
 
   const handleBet = (amount: number) => {
     // Validate bet amount
@@ -22,9 +24,11 @@ function LimboContainer() {
       return;
     }
 
+    if (!user) return;
+
     // Deduct bet amount upfront
     const newBalanceAfterBet = balance - amount;
-    setBalance(newBalanceAfterBet);
+    setBalance(newBalanceAfterBet, user.id);
 
     setIsRolling(true);
     const randomMultiplier = generateWeightedRandom();
@@ -34,7 +38,7 @@ function LimboContainer() {
       // Player wins - add winnings to already reduced balance
       const winnings = amount * randomMultiplier;
       const finalBalance = newBalanceAfterBet + winnings;
-      setBalance(finalBalance);
+      setBalance(finalBalance, user.id);
       setRecentWins([
         ...recentWins,
         { isWin: true, randomNumber: randomMultiplier },

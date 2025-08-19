@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { supabase } from "@/lib/supabase";
 
 type CommonStore = {
   profitAmount: number;
@@ -7,7 +8,8 @@ type CommonStore = {
   multiplier: number;
   setMultiplier: (multiplier: number) => void;
   balance: number;
-  setBalance: (balance: number) => void;
+  setBalance: (balance: number, userId?: string) => void;
+  fetchBalance: (userId: string) => Promise<void>;
   clearCommonState: () => void;
 };
 
@@ -17,9 +19,44 @@ export const useCommonStore = create<CommonStore>()(
       profitAmount: 0,
       multiplier: 0,
       balance: 1000,
+
       setProfitAmount: (profitAmount) => set({ profitAmount }),
       setMultiplier: (multiplier) => set({ multiplier }),
-      setBalance: (balance) => set({ balance: balance < 0 ? 0 : balance }),
+
+      // ✅ Updates local state immediately and pushes to DB in background
+      setBalance: (balance, userId) => {
+        const safeBalance = Math.max(0, Math.round(balance));
+
+        // Update local state immediately
+        set({ balance: safeBalance });
+
+        // Update Supabase in the background
+        if (userId) {
+          supabase
+            .from("users")
+            .update({ balance: safeBalance })
+            .eq("id", userId)
+            .then(({ error }) => {
+              if (error) console.error("Supabase balance update error:", error.message);
+            });
+        }
+      },
+
+      // Pull balance from DB
+      fetchBalance: async (userId: string) => {
+        const { data, error } = await supabase
+          .from("users")
+          .select("balance")
+          .eq("id", userId)
+          .single();
+
+        if (!error && data) {
+          set({ balance: data.balance });
+        } else if (error) {
+          console.error("Error fetching balance:", error.message);
+        }
+      },
+
       clearCommonState: () => {
         const currentBalance = get().balance;
         set({

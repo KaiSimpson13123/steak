@@ -7,6 +7,7 @@ import { useCommonStore } from "@/app/_store/commonStore";
 import Modal from "../ui/Modal";
 import { addGameResult } from "@/app/_constants/data";
 import { Coins, Beef } from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function ConfigComponent() {
   const {
@@ -23,6 +24,10 @@ export default function ConfigComponent() {
 
   const { numberOfSuccessfulClicks, resetGrid } = useGridStore();
   const { multiplier, setMultiplier, setBalance, balance } = useCommonStore();
+
+  const { user, logout } = useAuth();
+
+  if (!user) return;
 
   const [successfulClicks, setSuccessfulClicks] = useState(0);
   const [currentProfit, setCurrentProfit] = useState<number | null>(null);
@@ -48,7 +53,7 @@ export default function ConfigComponent() {
     setGameStarted(true);
     setSuccessfulClicks(0);
     setCurrentProfit(betAmount);
-    setBalance(balance! - betAmount!);
+    setBalance(balance! - betAmount!, user.id);
   };
 
   useEffect(() => {
@@ -67,7 +72,7 @@ export default function ConfigComponent() {
     setShowModal(true);
 
     const finalBalance = balance! + currentProfit!;
-    setBalance(finalBalance);
+    setBalance(finalBalance, user.id);
     addGameResult("Mines", "Win", currentProfit!, finalBalance);
   };
 

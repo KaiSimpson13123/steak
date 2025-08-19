@@ -1,17 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Client, Account, ID } from "appwrite";
 import { useRouter } from "next/navigation";
-
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
-
-const account = new Account(client);
+import { supabase } from "../../lib/supabase";
 
 export default function SignupPage() {
   const router = useRouter();
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,12 +15,47 @@ export default function SignupPage() {
     e.preventDefault();
     setError("");
 
+    if (!username || !email || !password) {
+      setError("All fields are required");
+      return;
+    }
+
     try {
-      await account.create(ID.unique(), email, password);
-      await account.createSession(email, password);
-      router.push("/"); // redirect to homepage
+      // Step 1: create user in Supabase auth
+      const { data, error: signupError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { username },
+        },
+      });
+
+      if (signupError) throw signupError;
+
+      // Step 2: make a user "document" under /users/{uid}
+      if (data.user) {
+        const userId = data.user.id;
+
+        const { error: dbError } = await supabase
+          .from("users")
+          .insert([
+            {
+              id: userId, // this becomes /users/{uid}
+              username,
+              email,
+              balance: 1000,
+              lastDailyClaim: null,
+              lastWeeklyClaim: null,
+              createdAt: new Date().toISOString(),
+            },
+          ]);
+
+        if (dbError) throw dbError;
+      }
+
+      router.push("/login");
     } catch (err: any) {
-      setError(err.message || "Signup failed");
+      setError(err.message);
     }
   };
 
@@ -33,6 +63,14 @@ export default function SignupPage() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white">
       <h1 className="text-3xl mb-6">Sign Up</h1>
       <form className="flex flex-col gap-4 w-80" onSubmit={handleSignup}>
+        <input
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          className="p-2 rounded bg-gray-800 text-white"
+          required
+        />
         <input
           type="email"
           placeholder="Email"
@@ -55,7 +93,16 @@ export default function SignupPage() {
         >
           Sign Up
         </button>
-        <p>Have an account? <button className="underline" onClick={() => router.push("/login")}>Login</button></p>
+        <p>
+          Have an account?{" "}
+          <button
+            type="button"
+            className="underline"
+            onClick={() => router.push("/login")}
+          >
+            Login
+          </button>
+        </p>
         {error && <p className="text-red-400">{error}</p>}
       </form>
     </div>
