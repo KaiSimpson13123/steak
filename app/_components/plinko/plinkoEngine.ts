@@ -302,6 +302,7 @@ class PlinkoEngine {
   }
 
   Matter.Composite.remove(this.engine.world, ball);
+  
 }
 
 

@@ -13,6 +13,9 @@ type CommonStore = {
   clearCommonState: () => void;
 };
 
+// ✅ declare outside so it doesn't cause syntax errors
+let balanceUpdateTimeout: NodeJS.Timeout | null = null;
+
 export const useCommonStore = create<CommonStore>()(
   persist(
     (set, get) => ({
@@ -23,26 +26,24 @@ export const useCommonStore = create<CommonStore>()(
       setProfitAmount: (profitAmount) => set({ profitAmount }),
       setMultiplier: (multiplier) => set({ multiplier }),
 
-      // ✅ Updates local state immediately and pushes to DB in background
       setBalance: (balance, userId) => {
-        const safeBalance = Math.max(0, Math.round(balance));
-
-        // Update local state immediately
+        const safeBalance = Math.max(0, Math.round(balance * 100) / 100);
         set({ balance: safeBalance });
 
-        // Update Supabase in the background
         if (userId) {
-          supabase
-            .from("users")
-            .update({ balance: safeBalance })
-            .eq("id", userId)
-            .then(({ error }) => {
-              if (error) console.error("Supabase balance update error:", error.message);
-            });
+          if (balanceUpdateTimeout) clearTimeout(balanceUpdateTimeout);
+          balanceUpdateTimeout = setTimeout(() => {
+            supabase
+              .from("users")
+              .update({ balance: safeBalance })
+              .eq("id", userId)
+              .then(({ error }) => {
+                if (error) console.error("Supabase balance update error:", error.message);
+              });
+          }, 300); // waits 300ms before writing
         }
       },
 
-      // Pull balance from DB
       fetchBalance: async (userId: string) => {
         const { data, error } = await supabase
           .from("users")

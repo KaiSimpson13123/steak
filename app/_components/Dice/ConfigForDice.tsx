@@ -6,6 +6,7 @@ function ConfigForDice({ onBet }: { onBet: (amount: number) => void }) {
   const [betAmount, setBetAmount] = React.useState<number>(0);
   const [inputValue, setInputValue] = React.useState<string>("");
   const [error, setError] = React.useState<string>("");
+  const [cooldown, setCooldown] = React.useState<boolean>(false);
   const { balance } = useCommonStore();
 
   const handleBetAmountChange = (newValue: string) => {
@@ -44,8 +45,19 @@ function ConfigForDice({ onBet }: { onBet: (amount: number) => void }) {
     }
   };
 
+  const handleBetClick = () => {
+    if (!betAmount || betAmount <= 0 || betAmount > balance || error) return;
+
+    // Trigger the bet
+    onBet(betAmount);
+
+    // Start cooldown
+    setCooldown(true);
+    setTimeout(() => setCooldown(false), 1000); // 1 second cooldown
+  };
+
   return (
-    <div className="flex flex-col gap-6 p-4  text-white max-w-md mx-auto rounded-lg">
+    <div className="flex flex-col gap-6 p-4 text-white max-w-md mx-auto rounded-lg">
       <div>
         <div className="flex justify-between mb-2">
           <span className="text-[#b0b9d2]">Bet Amount</span>
@@ -87,12 +99,18 @@ function ConfigForDice({ onBet }: { onBet: (amount: number) => void }) {
       </div>
       {error && <p className="text-red-500 text-sm">{error}</p>}
       <button
-          onClick={() => onBet(betAmount)}
-          className="w-full py-3 rounded-md bg-success text-black hover:bg-green-700 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
-          disabled={!betAmount || betAmount <= 0 || betAmount > balance || error !== ""}
-        >
-          {betAmount > balance ? "Insufficient Balance" : "Bet"}
-        </button>
+        onClick={handleBetClick}
+        className="w-full py-3 rounded-md bg-success text-black hover:bg-green-700 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+        disabled={
+          !betAmount ||
+          betAmount <= 0 ||
+          betAmount > balance ||
+          error !== "" ||
+          cooldown
+        }
+      >
+        {cooldown ? "Please wait..." : betAmount > balance ? "Insufficient Balance" : "Bet"}
+      </button>
     </div>
   );
 }

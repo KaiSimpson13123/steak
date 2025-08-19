@@ -20,6 +20,9 @@ function PlinkoConfig({ dropBall }: { dropBall: () => void }) {
   const [error, setError] = React.useState<string>("");
   const { balance, setBalance } = useCommonStore();
   const { user, logout } = useAuth();
+  const [isCooldown, setIsCooldown] = React.useState(false);
+  const [isBallActive, setIsBallActive] = React.useState(false);
+
   const {
     riskLevel,
     setRiskLevel,
@@ -69,16 +72,32 @@ function PlinkoConfig({ dropBall }: { dropBall: () => void }) {
 
   const handleDropBall = () => {
     if (!user) return;
-    // Validate bet amount before proceeding
+    if (isBallActive) return;
+    setIsBallActive(true);
+
     if (betAmount <= 0 || betAmount > balance) {
       setError("Invalid bet amount");
       return;
     }
 
-    // Deduct money upfront when ball is dropped
-    setBalance(balance - betAmount, user.id);
-    dropBall();
+    if (isBallActive) return; // prevent dropping another
+
+    // Deduct the bet
+    const currentBalance = useCommonStore.getState().balance;
+    setBalance(Math.round((balance - betAmount) * 100) / 100, user.id);
+
+    dropBall(); // actually drops the ball
+
+    setIsBallActive(true); // disable button until ball finishes
   };
+
+React.useEffect(() => {
+  // Expose globally so engine can call it
+  (window as any).resetPlinkoButton = () => {
+    setIsBallActive(false);
+  };
+}, []);
+
 
   return (
     <div className="flex flex-col gap-6 p-4  text-white max-w-md mx-auto rounded-lg">
@@ -170,13 +189,7 @@ function PlinkoConfig({ dropBall }: { dropBall: () => void }) {
           </Select>
         </div>
       </div>
-      <button
-        onClick={handleDropBall}
-        className="w-full py-3 rounded-md bg-success text-black hover:bg-green-700 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
-        disabled={!betAmount || betAmount <= 0 || betAmount > balance}
-      >
-        {betAmount > balance ? "Insufficient Balance" : "Bet"}
-      </button>
+      <button onClick={handleDropBall} className="w-full py-3 rounded-md bg-success text-black hover:bg-green-700 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors font-medium" disabled={!betAmount || betAmount <= 0 || betAmount > balance || isBallActive} > {isBallActive ? "Ball in play..." : betAmount > balance ? "Insufficient Balance" : "Bet"} </button>
     </div>
   );
 }

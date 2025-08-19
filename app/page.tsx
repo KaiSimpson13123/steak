@@ -8,9 +8,11 @@ import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "react-hot-toast";
 
+// { name: "PLINKO", link: "/plinko", logo: <Rocket size={48} />, img: "/assets/plinko.png" },
+
 const games = [
   { name: "MINES", link: "/mines", logo: <Gem size={48} />, img: "/assets/mines.png" },
-  { name: "PLINKO", link: "/plinko", logo: <Rocket size={48} />, img: "/assets/plinko.png" },
+  
   { name: "DICE", link: "/dice", logo: <Rocket size={48} />, img: "/assets/dice.png" },
   { name: "LIMBO", link: "/limbo", logo: <Rocket size={48} />, img: "/assets/limbo.avif" },
 ];
@@ -81,30 +83,28 @@ const generateQuestion = () => {
     const correct = parseInt(answer) === num1 + num2;
 
     if (correct) {
-      setAnswerState("correct");
-      try {
-        const { data: userDoc, error: fetchError } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", user.id)
-          .maybeSingle();
+    setAnswerState("correct");
+    try {
+      const { data: userDoc, error: fetchError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
 
-        if (fetchError || !userDoc) throw fetchError || new Error("User not found");
+      if (fetchError || !userDoc) throw fetchError || new Error("User not found");
 
-        const newBalance = (userDoc.balance || 0) + 1;
-        const { error: updateError } = await supabase
-          .from("users")
-          .update({ balance: newBalance })
-          .eq("id", user.id);
+      const newBalance = (userDoc.balance || 0) + 1; // <-- always +1
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({ balance: newBalance })
+        .eq("id", user.id);
 
-        if (updateError) throw updateError;
-        setBalance(newBalance, user.id);
-      } catch (err) {
-        console.error(err);
-      }
-    } else {
-      setAnswerState("wrong");
+      if (updateError) throw updateError;
+      setBalance(newBalance, user.id);
+    } catch (err) {
+      console.error(err);
     }
+  }
 
     // After 1 second, reset button and generate new question
     setTimeout(() => {
@@ -175,7 +175,7 @@ const redeemPromo = async () => {
 
     if (promoUpdateError) throw promoUpdateError;
 
-    setBalance(newBalance);
+    setBalance(newBalance, user.id);
     setPromoCode("");
     setModalMessage(`Successfully redeemed ${promo.amount} steaks!`);
     setModalVisible(true);
@@ -213,7 +213,7 @@ const redeemPromo = async () => {
 
       if (updateError) throw updateError;
 
-      setBalance(updates.balance);
+      setBalance(updates.balance, user.id);
 
       // Update state
       if (type === "daily") setCanClaimDaily(false);
@@ -304,7 +304,7 @@ const redeemPromo = async () => {
       }
 
       // Update balance from DB
-      if (userDoc.balance !== undefined) setBalance(userDoc.balance);
+      if (userDoc.balance !== undefined) setBalance(userDoc.balance, user.id);
 
     } catch (err) {
       console.error("Error fetching user rewards:", err);
