@@ -382,12 +382,14 @@ const redeemPromo = async () => {
           <input
             type="number"
             value={answer}
+            disabled={(!user)}
             onChange={(e) => setAnswer(e.target.value)}
             className="px-4 py-2 rounded-md bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-success"
           />
           <button
           onClick={submitAnswer}
-          className={`px-4 py-2 rounded-md font-medium text-black transition-colors w-24 ${
+          disabled={(!user)}
+          className={`px-4 py-2 rounded-md disabled:bg-gray-600 font-medium text-black transition-colors w-24 ${
             answerState === "idle"
               ? "bg-success hover:bg-green-600"
               : answerState === "correct"
@@ -437,13 +439,15 @@ const redeemPromo = async () => {
           <input
             type="text"
             value={promoCode}
+            disabled={(!user)}
             onChange={(e) => setPromoCode(e.target.value)}
             placeholder="Enter code..."
             className="px-4 py-2 rounded-md bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-success"
           />
           <button
             onClick={redeemPromo}
-            className="px-6 py-2 bg-success hover:bg-green-600 rounded-md text-black font-medium"
+            disabled={(!user)}
+            className="px-6 py-2 bg-success disabled:bg-gray-600 hover:bg-green-600 rounded-md text-black font-medium"
           >
             Redeem
           </button>
