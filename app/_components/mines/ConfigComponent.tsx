@@ -27,9 +27,7 @@ export default function ConfigComponent() {
 
   const { user, logout } = useAuth();
 
-  if (!user) return;
-
-  const [successfulClicks, setSuccessfulClicks] = useState(0);
+  const [successfulClicks, setSuccessfulClicks] = useState(0);  
   const [currentProfit, setCurrentProfit] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"manual" | "auto">("manual");
@@ -48,6 +46,7 @@ export default function ConfigComponent() {
     if (betAmount === null || betAmount <= 0 || betAmount > balance!) {
       return;
     }
+    if (!user) return;
 
     handleSetupGame();
     setGameStarted(true);
@@ -65,6 +64,7 @@ export default function ConfigComponent() {
   }, [betAmount, numberOfMines, numberOfSuccessfulClicks, setMultiplier]);
 
   const handleCashOut = () => {
+    if (!user) return;
     setGameStarted(false);
     clearConfigStore();
     resetGame();

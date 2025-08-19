@@ -20,7 +20,6 @@ function PlinkoConfig({ dropBall }: { dropBall: () => void }) {
   const [error, setError] = React.useState<string>("");
   const { balance, setBalance } = useCommonStore();
   const { user, logout } = useAuth();
-  if (!user) return;
   const {
     riskLevel,
     setRiskLevel,
@@ -69,6 +68,7 @@ function PlinkoConfig({ dropBall }: { dropBall: () => void }) {
   };
 
   const handleDropBall = () => {
+    if (!user) return;
     // Validate bet amount before proceeding
     if (betAmount <= 0 || betAmount > balance) {
       setError("Invalid bet amount");

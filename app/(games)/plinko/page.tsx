@@ -6,6 +6,7 @@ import { usePlinkoStore } from "@/app/_store/plinkoStore";
 import { useRef } from "react";
 import { useEffect } from "react";
 import { useState } from "react";
+import { useAuth } from "@/components/AuthProvider"; 
 
 const { WIDTH, HEIGHT } = PlinkoEngine;
 
@@ -14,9 +15,12 @@ export default function Dice() {
   const [isLoading, setIsLoading] = useState(true);
   const [plinkoEngine, setPlinkoEngine] = useState<PlinkoEngine>(); // Assuming you have a store/context
   const { rowCount, riskLevel, multiplier } = usePlinkoStore();
+  const { user } = useAuth();
   useEffect(() => {
     if (canvasRef.current) {
-      const engine = new PlinkoEngine(canvasRef.current);
+
+      
+      const engine = new PlinkoEngine(canvasRef.current, user);
       setPlinkoEngine(engine);
 
       engine.start();
@@ -26,7 +30,7 @@ export default function Dice() {
         engine?.stop();
       };
     }
-  }, [setPlinkoEngine, rowCount, riskLevel]);
+  }, [setPlinkoEngine, rowCount, riskLevel, user]);
   return (
     <main className="flex flex-col h-full">
       <div className="flex flex-col lg:flex-row w-full p-4 lg:p-8 flex-1">

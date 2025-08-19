@@ -18,9 +18,6 @@ import Matter, { IBodyDefinition } from "matter-js";
 import { binPayouts, getRandomBetween, RiskLevel, RowCount } from "./utils";
 import { usePlinkoStore } from "../../_store/plinkoStore";
 import { useCommonStore } from "@/app/_store/commonStore";
-import { useAuth } from "@/components/AuthProvider";
-
-const { user, logout } = useAuth();
 
 type BallFrictionsByRowCount = {
   friction: NonNullable<IBodyDefinition["friction"]>;
@@ -40,6 +37,8 @@ class PlinkoEngine {
    * The canvas element to render the game to.
    */
   private canvas: HTMLCanvasElement;
+
+  private user: { id: string } | null;
 
   /**
    * A cache value of the {@link betAmount} store for faster access.
@@ -126,8 +125,10 @@ class PlinkoEngine {
    * @remarks This constructor does NOT start the rendering and physics engine.
    * Call the `start` method to start the engine.
    */
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, user: { id: string } | null) {
     this.canvas = canvas;
+
+    this.user = user;
 
     this.betAmount = this.store.betAmount;
     this.rowCount = this.store.rowCount;
@@ -284,20 +285,25 @@ class PlinkoEngine {
    * Called when a ball hits the invisible sensor at the bottom.
    */
   private handleBallEnterBin(ball: Matter.Body) {
-    const binIndex = this.pinsLastRowXCoords.findLastIndex(
-      (pinX) => pinX < ball.position.x
-    );
-    if (binIndex !== -1 && binIndex < this.pinsLastRowXCoords.length - 1) {
-      if (!user) return;
-      const multiplier = binPayouts[this.rowCount][this.riskLevel][binIndex];
-      this.store.setMultiplier(multiplier);
-      const newBalance = this.commonStore.balance - this.betAmount;
-      console.log("newBalance", newBalance, this.betAmount, multiplier);
-      this.commonStore.setBalance(newBalance + this.betAmount * multiplier, user.id);
-    }
+  const binIndex = this.pinsLastRowXCoords.findLastIndex(
+    (pinX) => pinX < ball.position.x
+  );
+  if (binIndex !== -1 && binIndex < this.pinsLastRowXCoords.length - 1) {
+    const multiplier = binPayouts[this.rowCount][this.riskLevel][binIndex];
+    this.store.setMultiplier(multiplier);
+    const newBalance = this.commonStore.balance - this.betAmount;
 
-    Matter.Composite.remove(this.engine.world, ball);
+    if (this.user) {
+      this.commonStore.setBalance(
+        newBalance + this.betAmount * multiplier,
+        this.user.id // <-- pass user.id here
+      );
+    }
   }
+
+  Matter.Composite.remove(this.engine.world, ball);
+}
+
 
   /**
    * Renders the pins and walls. Previous ones are removed before rendering new ones.
