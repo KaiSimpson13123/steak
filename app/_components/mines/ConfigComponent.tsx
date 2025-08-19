@@ -6,7 +6,7 @@ import { useGridStore } from "@/app/_store/gridStore";
 import { useCommonStore } from "@/app/_store/commonStore";
 import Modal from "../ui/Modal";
 import { addGameResult } from "@/app/_constants/data";
-import { Coins } from "lucide-react";
+import { Coins, Beef } from "lucide-react";
 
 export default function ConfigComponent() {
   const {
@@ -100,7 +100,7 @@ export default function ConfigComponent() {
               onClick={(e) => e.currentTarget.select()}
             />
             <div className="absolute right-3 pointer-events-none">
-              <Coins className="w-4 h-4 text-success" />
+              <Beef className="w-4 h-4 text-success" />
             </div>
           </div>
           <button

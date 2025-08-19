@@ -1,4 +1,4 @@
-import { Bomb, Coins, Divide, Gem } from "lucide-react";
+import { Bomb, Coins, Divide, Gem, Beef } from "lucide-react";
 import React, { useEffect, useRef } from "react";
 
 export interface ModalProps {
@@ -61,7 +61,7 @@ export default function Modal({
 
           <div className="flex justify-center items-center gap-1">
             <span className="text-success text-xl font-semibold flex flex-row gap-2">
-              <Coins className="w-6 h-6" /> {amount?.toFixed(2)}
+              <Beef className="w-6 h-6" /> {amount?.toFixed(2)}
             </span>
           </div>
         </div>

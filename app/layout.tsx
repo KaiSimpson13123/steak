@@ -8,7 +8,7 @@ import Footer from "./_components/Footer";
 const inter = Geist({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Fake Stake - Play Real Games with Fake Money",
+  title: "Steak",
   description:
     "Experience the thrill of casino games like Mines and more without risking real money. Practice and perfect your strategies in a risk-free environment.",
   keywords: [

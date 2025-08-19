@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { useCommonStore } from "@/app/_store/commonStore";
 import Link from "next/link";
 import { Coffee, Github, Twitter } from "lucide-react";
 
@@ -12,6 +13,16 @@ export default function Footer() {
       targetSection.scrollIntoView({ behavior: "smooth" });
     }
   };
+  const { balance, clearCommonState } = useCommonStore();
+  const resetMoney = () => {
+    const pass = prompt("Enter Password");
+
+    if (pass === process.env.NEXT_PUBLIC_PASSWORD) {
+      clearCommonState();
+    } else {
+      alert("Password Incorrect");
+    }
+  }
 
   return (
     <footer className="w-full py-16 px-4 sm:px-6 lg:px-8 bg-black/40 backdrop-blur-lg border-t border-white/10">
@@ -20,7 +31,7 @@ export default function Footer() {
           {/* About Section */}
           <div className="space-y-6">
             <h3 className="text-2xl font-bold bg-gradient-to-r from-success to-emerald-500 bg-clip-text text-transparent">
-              About FakeStake
+              About Steak
             </h3>
             <p className="text-white/70 text-sm leading-relaxed">
               An open-source project dedicated to providing a safe and
@@ -38,35 +49,21 @@ export default function Footer() {
               Join Our Community
             </h3>
             <p className="text-white/70 text-sm mb-6">
-              Connect with us and contribute to make FakeStake even better!
+              Connect with us and contribute to make Steak even better!
             </p>
-            <div className="flex flex-wrap gap-4">
-              <a
-                href="https://github.com/Akshaygore1/FakeStake"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-3 text-white/70 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 border border-white/10"
-              >
-                <Github className="w-6 h-6" />
-              </a>
-              <a
-                href="https://www.buymeacoffee.com/akshaygore"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-3 text-white/70 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 border border-white/10 flex items-center gap-2"
-              >
-                <Coffee className="w-6 h-6" />
-                <span>Buy Me Coffee</span>
-              </a>
-            </div>
           </div>
         </div>
 
         {/* Copyright Section */}
         <div className="mt-16 pt-8 border-t border-white/10">
           <p className="text-center text-white/50 text-sm">
-            © {new Date().getFullYear()} FakeStake. All rights reserved.
+            © {new Date().getFullYear()} Steak. All rights reserved.
           </p>
+          <a>
+            <p onClick={() => resetMoney()} className="cursor-pointer text-center text-white/50 text-sm">
+              Reset Money
+            </p>
+          </a>
         </div>
       </div>
     </footer>

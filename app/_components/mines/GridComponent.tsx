@@ -4,7 +4,7 @@
 import { useConfigStore } from "@/app/_store/configStore";
 import { useGridStore } from "@/app/_store/gridStore";
 import { useEffect, useState } from "react";
-import { Gem } from "lucide-react";
+import { Gem, Beef } from "lucide-react";
 import { useCommonStore } from "@/app/_store/commonStore";
 import { addGameResult } from "@/app/_constants/data";
 import Modal from "../ui/Modal";
@@ -58,7 +58,7 @@ export default function GridComponent() {
 
         addGameResult(
           <div className="flex items-center justify-center gap-1">
-            <Gem size={20} />
+            <Beef size={20} />
             Mines
           </div>,
           "Loss",
@@ -107,10 +107,8 @@ export default function GridComponent() {
                 </div>
               ) : (
                 <div className="relative flex p-2 items-center justify-center w-full h-full bg-primary text-white font-bold rounded-md">
-                  <img
-                    src="/assets/diamond.svg"
-                    alt="coins"
-                    className="w-4/5 h-4/5 animate-fade-in"
+                  <Beef
+                    className="w-4/5 h-4/5 animate-fade-in text-[#4cd964]"
                   />
                 </div>
               )}

@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Coins } from "lucide-react";
+import { Coins, Beef } from "lucide-react";
 import React from "react";
 import { RiskLevel, RowCount } from "./utils";
 
@@ -100,7 +100,7 @@ function PlinkoConfig({ dropBall }: { dropBall: () => void }) {
             onClick={(e) => e.currentTarget.select()}
           />
           <div className="absolute right-3 pointer-events-none">
-            <Coins className="w-4 h-4 text-success" />
+            <Beef className="w-4 h-4 text-success" />
           </div>
         </div>
         <button
