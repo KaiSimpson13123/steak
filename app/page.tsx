@@ -98,7 +98,7 @@ const generateQuestion = () => {
           .eq("id", user.id);
 
         if (updateError) throw updateError;
-        setBalance(newBalance);
+        setBalance(newBalance, user.id);
       } catch (err) {
         console.error(err);
       }
