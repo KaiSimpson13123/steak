@@ -552,19 +552,33 @@ useEffect(() => {
               <span>Username</span>
               <span>Balance</span>
             </div>
-            {leaderboard.map((user, idx) => (
-              <div
-                key={user.username}
-                className={`grid grid-cols-[1fr_2fr_1fr] px-4 py-3 border-1 rounded-md border-gray-700
-                  ${idx === 0 ? "border-2 border-yellow-400 bg-gray-800 relative z-10" : ""}
-                  ${idx % 2 === 0 ? "bg-gray-800" : "bg-gray-700/50"}
-                  hover:bg-gray-600 transition-colors`}
-              >
-                <span className="text-yellow-400 font-bold">{idx + 1}</span>
-                <span className="font-medium text-white">{user.username}</span>
-                <span className="text-green-400 font-semibold">{user.balance}</span>
-              </div>
-            ))}
+            {leaderboard.map((lbUser, idx) => {
+                const isCurrentUser = user?.user_metadata?.username === lbUser.username;
+
+                return (
+                  <div
+                    key={lbUser.username}
+                    className={`grid grid-cols-[1fr_2fr_1fr] px-4 py-3 rounded-md border 
+                      ${idx === 0 ? "border-2 border-yellow-400 bg-gray-800 relative z-10" : ""} 
+                      ${isCurrentUser && idx !== 0 ? "border-2 border-gray-400" : "border border-gray-700"} 
+                      ${idx % 2 === 0 ? "bg-gray-800" : "bg-gray-700/50"} 
+                      hover:bg-gray-600 transition-colors`}
+                  >
+                    <span className={idx === 0 ? "text-yellow-400 font-bold" : "text-gray-300 font-bold"}>
+                      {idx + 1}
+                    </span>
+                    <span
+                      className={`font-medium ${
+                        isCurrentUser ? "text-blue-300" : "text-white"
+                      }`}
+                    >
+                      {lbUser.username}
+                    </span>
+                    <span className="text-green-400 font-semibold">{lbUser.balance}</span>
+                  </div>
+                );
+              })}
+
           </div>
         </section>
 
