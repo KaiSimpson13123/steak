@@ -104,6 +104,9 @@ const generateQuestion = () => {
     } catch (err) {
       console.error(err);
     }
+  } else {
+    // mark wrong when incorrect
+    setAnswerState("wrong");
   }
 
     // After 1 second, reset button and generate new question
@@ -409,29 +412,41 @@ useEffect(() => {
         </h1>
         <p className="text-gray-400 mb-4">Solve the addition problem to earn +1 steak!</p>
 
-        <div className="flex gap-2 items-center mb-2">
-          <span className="text-white text-xl">{num1} + {num2} =</span>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault(); // stop page reload
+            submitAnswer();
+          }}
+          className="flex gap-2 items-center mb-2"
+        >
+          <span className="text-white text-xl">
+            {num1} + {num2} =
+          </span>
           <input
             type="number"
             value={answer}
-            disabled={(!user)}
+            disabled={!user}
             onChange={(e) => setAnswer(e.target.value)}
             className="px-4 py-2 rounded-md bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-success"
           />
           <button
-          onClick={submitAnswer}
-          disabled={(!user)}
-          className={`px-4 py-2 rounded-md disabled:bg-gray-600 font-medium text-black transition-colors w-24 ${
-            answerState === "idle"
-              ? "bg-success hover:bg-green-600"
-              : answerState === "correct"
-              ? "bg-green-500"
-              : "bg-red-500"
-          }`}
+            type="submit"
+            disabled={!user}
+            className={`px-4 py-2 rounded-md disabled:bg-gray-600 font-medium text-black transition-colors w-24 ${
+              answerState === "idle"
+                ? "bg-success hover:bg-green-600"
+                : answerState === "correct"
+                ? "bg-green-500"
+                : "bg-red-500"
+            }`}
           >
-          {answerState === "correct" ? "✔" : answerState === "wrong" ? "✖" : "Submit"}
+            {answerState === "correct"
+              ? "✔"
+              : answerState === "wrong"
+              ? "✖"
+              : "Submit"}
           </button>
-        </div>
+        </form>
       </section>
 
 
@@ -467,24 +482,31 @@ useEffect(() => {
         <p className="text-xl text-gray-500">Promo Codes</p>
         <br />
 
-        <div className="flex gap-2">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault(); // prevent page reload
+            redeemPromo();
+          }}
+          className="flex gap-2"
+        >
           <input
             type="text"
             value={promoCode}
-            disabled={(!user)}
+            disabled={!user}
             onChange={(e) => setPromoCode(e.target.value)}
             placeholder="Enter code..."
             className="px-4 py-2 rounded-md bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-success"
           />
           <button
-            onClick={redeemPromo}
-            disabled={(!user)}
+            type="submit"
+            disabled={!user}
             className="px-6 py-2 bg-success disabled:bg-gray-600 hover:bg-green-600 rounded-md text-black font-medium"
           >
             Redeem
           </button>
-        </div>
+        </form>
       </section>
+
 
       <section className="w-full max-w-4xl flex flex-col items-center text-center mt-20 mb-20">
         <h2 className="text-4xl text-white font-bold mb-6">🏆 Top Players</h2>
