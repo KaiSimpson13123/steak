@@ -219,10 +219,26 @@ const redeemPromo = async () => {
       if (type === "daily") setCanClaimDaily(false);
       else setCanClaimWeekly(false);
 
+      await checkRewards();
+      // Refresh leaderboard
+      await fetchLeaderboard();
+
     } catch (err) {
       console.error(`Error claiming ${type} reward:`, err);
     }
   };
+
+  useEffect(() => {
+  fetchLeaderboard(); // initial
+  const interval = setInterval(fetchLeaderboard, 5000);
+  return () => clearInterval(interval);
+}, []);
+
+  useEffect(() => {
+    checkRewards();
+    const interval = setInterval(checkRewards, 5000);
+  return () => clearInterval(interval);
+  }, []);
 
   // Helper: format remaining time
   const formatTime = (ms: number) => {
@@ -235,89 +251,105 @@ const redeemPromo = async () => {
       .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  useEffect(() => {
-  if (!user) return;
-
-  let dailyInterval: number;
-  let weeklyInterval: number;
+  const [dailyIntervalId, setDailyIntervalId] = useState<NodeJS.Timeout | null>(null);
+  const [weeklyIntervalId, setWeeklyIntervalId] = useState<NodeJS.Timeout | null>(null);
 
   const checkRewards = async () => {
-    try {
-      const { data: userDoc, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", user.id)
-        .single();
+  if (!user) return;
 
-      if (error || !userDoc) throw error || new Error("User not found");
+  try {
+    const { data: userDoc, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", user.id)
+      .single();
 
-      const now = new Date();
+    if (error || !userDoc) throw error || new Error("User not found");
 
-      // === Daily ===
-      const lastDailyUTC = userDoc.lastDailyClaim
-        ? new Date(userDoc.lastDailyClaim + "Z")
-        : null;
-      const dailyReset = lastDailyUTC
-        ? new Date(lastDailyUTC.getTime() + 24 * 60 * 60 * 1000)
-        : null;
+    const now = new Date();
 
-      if (!lastDailyUTC || now >= dailyReset!) {
-        setCanClaimDaily(true);
-        setDailyCountdown("");
-      } else {
-        setCanClaimDaily(false);
-        const updateDailyCountdown = () => {
-          const remaining = dailyReset!.getTime() - new Date().getTime();
-          if (remaining <= 0) {
-            setCanClaimDaily(true);
-            setDailyCountdown("");
-            clearInterval(dailyInterval);
-          } else setDailyCountdown(formatTime(remaining));
-        };
-        updateDailyCountdown();
-        dailyInterval = window.setInterval(updateDailyCountdown, 1000);
+    // === Daily ===
+    const lastDailyUTC = userDoc.lastDailyClaim
+      ? new Date(userDoc.lastDailyClaim + "Z")
+      : null;
+    const dailyReset = lastDailyUTC
+      ? new Date(lastDailyUTC.getTime() + 24 * 60 * 60 * 1000)
+      : null;
+
+    if (!lastDailyUTC || now >= dailyReset!) {
+      setCanClaimDaily(true);
+      setDailyCountdown("");
+      if (dailyIntervalId) {
+        clearInterval(dailyIntervalId);
+        setDailyIntervalId(null);
       }
-
-      // === Weekly ===
-      const lastWeeklyUTC = userDoc.lastWeeklyClaim
-        ? new Date(userDoc.lastWeeklyClaim + "Z")
-        : null;
-      const weeklyReset = lastWeeklyUTC
-        ? new Date(lastWeeklyUTC.getTime() + 7 * 24 * 60 * 60 * 1000)
-        : null;
-
-      if (!lastWeeklyUTC || now >= weeklyReset!) {
-        setCanClaimWeekly(true);
-        setWeeklyCountdown("");
-      } else {
-        setCanClaimWeekly(false);
-        const updateWeeklyCountdown = () => {
-          const remaining = weeklyReset!.getTime() - new Date().getTime();
-          if (remaining <= 0) {
-            setCanClaimWeekly(true);
-            setWeeklyCountdown("");
-            clearInterval(weeklyInterval);
-          } else setWeeklyCountdown(formatTime(remaining));
-        };
-        updateWeeklyCountdown();
-        weeklyInterval = window.setInterval(updateWeeklyCountdown, 1000);
-      }
-
-      // Update balance from DB
-      if (userDoc.balance !== undefined) setBalance(userDoc.balance, user.id);
-
-    } catch (err) {
-      console.error("Error fetching user rewards:", err);
+    } else {
+      setCanClaimDaily(false);
+      if (dailyIntervalId) clearInterval(dailyIntervalId);
+      const id = setInterval(() => {
+        const remaining = dailyReset!.getTime() - new Date().getTime();
+        if (remaining <= 0) {
+          setCanClaimDaily(true);
+          setDailyCountdown("");
+          clearInterval(id);
+          setDailyIntervalId(null);
+        } else {
+          setDailyCountdown(formatTime(remaining));
+        }
+      }, 1000);
+      setDailyIntervalId(id);
     }
-  };
 
-  checkRewards();
+    // === Weekly ===
+    const lastWeeklyUTC = userDoc.lastWeeklyClaim
+      ? new Date(userDoc.lastWeeklyClaim + "Z")
+      : null;
+    const weeklyReset = lastWeeklyUTC
+      ? new Date(lastWeeklyUTC.getTime() + 7 * 24 * 60 * 60 * 1000)
+      : null;
 
+    if (!lastWeeklyUTC || now >= weeklyReset!) {
+      setCanClaimWeekly(true);
+      setWeeklyCountdown("");
+      if (weeklyIntervalId) {
+        clearInterval(weeklyIntervalId);
+        setWeeklyIntervalId(null);
+      }
+    } else {
+      setCanClaimWeekly(false);
+      if (weeklyIntervalId) clearInterval(weeklyIntervalId);
+      const id = setInterval(() => {
+        const remaining = weeklyReset!.getTime() - new Date().getTime();
+        if (remaining <= 0) {
+          setCanClaimWeekly(true);
+          setWeeklyCountdown("");
+          clearInterval(id);
+          setWeeklyIntervalId(null);
+        } else {
+          setWeeklyCountdown(formatTime(remaining));
+        }
+      }, 1000);
+      setWeeklyIntervalId(id);
+    }
+
+    // Always update balance
+    if (userDoc.balance !== undefined) setBalance(userDoc.balance, user.id);
+  } catch (err) {
+    console.error("Error fetching user rewards:", err);
+  }
+};
+
+useEffect(() => {
+  if (user) {
+    checkRewards(); // run immediately on load
+  }
   return () => {
-    clearInterval(dailyInterval);
-    clearInterval(weeklyInterval);
+    if (dailyIntervalId) clearInterval(dailyIntervalId);
+    if (weeklyIntervalId) clearInterval(weeklyIntervalId);
   };
-}, [user, setBalance]);
+}, [user]);
+
+
 
 
   return (

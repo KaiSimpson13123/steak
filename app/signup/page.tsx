@@ -53,7 +53,7 @@ export default function SignupPage() {
         if (dbError) throw dbError;
       }
 
-      router.push("/login");
+      router.push("/");
     } catch (err: any) {
       setError(err.message);
     }
