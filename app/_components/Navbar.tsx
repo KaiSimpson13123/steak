@@ -74,12 +74,6 @@ export default function Navbar() {
                   {user.user_metadata?.username || user.email}
                 </span>
                 <button
-                  onClick={() => router.push("/")}
-                  className="bg-green-500 hover:bg-green-600 px-3 py-1 rounded font-semibold text-yellow-200"
-                >
-                  <Crown/>
-                </button>
-                <button
                   onClick={logout}
                   className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded font-semibold"
                 >

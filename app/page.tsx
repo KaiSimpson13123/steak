@@ -26,6 +26,13 @@ export default function Home() {
   const [dailyCountdown, setDailyCountdown] = useState("");
   const [weeklyCountdown, setWeeklyCountdown] = useState("");
 
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  });
+
   const [num1, setNum1] = useState(0);
   const [num2, setNum2] = useState(0);
   const [answer, setAnswer] = useState("");
@@ -64,6 +71,32 @@ export default function Home() {
 
   useEffect(() => {
     fetchLeaderboard();
+  }, []);
+
+  useEffect(() => {
+    const targetDate = new Date("2025-09-01T00:00:00Z").getTime();
+
+    const updateCountdown = () => {
+      const now = new Date().getTime();
+      const distance = targetDate - now;
+
+      if (distance <= 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+        return;
+      }
+
+      setTimeLeft({
+        days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+        seconds: Math.floor((distance % (1000 * 60)) / 1000),
+      });
+    };
+
+    updateCountdown(); // run immediately
+    const interval = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
 const generateQuestion = () => {
@@ -509,27 +542,32 @@ useEffect(() => {
 
 
       <section className="w-full max-w-4xl flex flex-col items-center text-center mt-20 mb-20">
-        <h2 className="text-4xl text-white font-bold mb-6">🏆 Top Players</h2>
-        <div className="w-full bg-gray-800 rounded-xl shadow-lg overflow-hidden">
-          <div className="grid grid-cols-[1fr_2fr_1fr] bg-gray-900 text-gray-400 font-semibold px-4 py-2">
-            <span>Rank</span>
-            <span>Username</span>
-            <span>Balance</span>
-          </div>
-          {leaderboard.map((user, idx) => (
-            <div
-              key={user.username}
-              className={`grid grid-cols-[1fr_2fr_1fr] px-4 py-3 border-b border-gray-700 ${
-                idx % 2 === 0 ? "bg-gray-800" : "bg-gray-700/50"
-              } hover:bg-gray-600 transition-colors`}
-            >
-              <span className="text-yellow-400 font-bold">{idx + 1}</span>
-              <span className="font-medium text-white">{user.username}</span>
-              <span className="text-green-400 font-semibold">{user.balance}</span>
+          <h2 className="text-4xl text-white font-bold mb-6">🏆 Top Players</h2>
+          <h3 className="text-xl text-gray-300 font-bold mb-6">
+            Winner gets $10 AUD: {timeLeft.days}d, {timeLeft.hours}h, {timeLeft.minutes}m, {timeLeft.seconds}s
+          </h3>
+          <div className="w-full bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+            <div className="grid grid-cols-[1fr_2fr_1fr] bg-gray-900 text-gray-400 font-semibold px-4 py-2">
+              <span>Rank</span>
+              <span>Username</span>
+              <span>Balance</span>
             </div>
-          ))}
-        </div>
-      </section>
+            {leaderboard.map((user, idx) => (
+              <div
+                key={user.username}
+                className={`grid grid-cols-[1fr_2fr_1fr] px-4 py-3 border-1 rounded-md border-gray-700
+                  ${idx === 0 ? "border-2 border-yellow-400 bg-gray-800 relative z-10" : ""}
+                  ${idx % 2 === 0 ? "bg-gray-800" : "bg-gray-700/50"}
+                  hover:bg-gray-600 transition-colors`}
+              >
+                <span className="text-yellow-400 font-bold">{idx + 1}</span>
+                <span className="font-medium text-white">{user.username}</span>
+                <span className="text-green-400 font-semibold">{user.balance}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
 
       {/* Promo Code Modal */}
       {modalVisible && (
