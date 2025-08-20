@@ -1,7 +1,11 @@
 const TOTAL_TILES = 25;
 const MAX_MULTIPLIER = 14;
 
-export function calculateWinningAmount(betAmount: number, selectedTiles: number, mines: number): number {
+export function calculateWinningAmount(
+  betAmount: number,
+  selectedTiles: number,
+  mines: number
+): number {
   const multiplier = calculateMultiplier(selectedTiles, mines);
   return Number((betAmount * multiplier).toFixed(2));
 }
@@ -34,22 +38,22 @@ export function calculateMultiplier(selectedTiles: number, mines: number): numbe
     selectedTiles < 1 ||
     selectedTiles > TOTAL_TILES - 1 ||
     mines < 1 ||
-    mines > TOTAL_TILES - selectedTiles
+    mines >= TOTAL_TILES
   ) {
-    throw new Error("Invalid number of selected tiles or mines");
+    throw new Error("Invalid selected tiles or mines");
   }
 
-  // Probability of not hitting a mine
+  // Base increment grows with more mines (riskier → bigger reward)
+  const BASE_INCREMENT = 1 + 0.03 * mines; // Each mine adds ~3% per safe tile
+
+  // Multiplier grows with each safe click
+  let multiplier = Math.pow(BASE_INCREMENT, selectedTiles);
+
+  // Slight probability adjustment
   const probability = 1 - mines / TOTAL_TILES;
+  multiplier *= probability * 1.2; // reward is slightly adjusted by chance
 
-  // Base multiplier grows slowly with each successful click
-  const BASE_INCREMENT = 1.05; // 5% per safe tile
-  let multiplier = Math.pow(BASE_INCREMENT, selectedTiles) * (1 + mines / TOTAL_TILES);
-
-  // Factor in probability but prevent runaway scaling
-  multiplier *= probability * 1.5;
-
-  // Cap multiplier
+  // Cap to prevent runaway multipliers
   multiplier = Math.min(multiplier, MAX_MULTIPLIER);
 
   return Number(multiplier.toFixed(2));
