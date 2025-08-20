@@ -176,6 +176,7 @@ export default function BJComponent({
         >
           Stand
         </button>
+        {/*}
         <button
           onClick={onDouble}
           disabled={!canDouble}
@@ -183,6 +184,7 @@ export default function BJComponent({
         >
           Double Down
         </button>
+        */}
       </div>
     </div>
   );

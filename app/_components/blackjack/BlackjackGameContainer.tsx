@@ -4,6 +4,7 @@ import ConfigForBJ from "./ConfigForBJ";
 import BJComponent, { Card } from "./BJComponent";
 import { useCommonStore } from "@/app/_store/commonStore";
 import { useAuth } from "@/components/AuthProvider";
+// framer-motion imported in BJComponent for animations
 
 type Status = "idle" | "dealt" | "playerTurn" | "dealerTurn" | "settled";
 
@@ -39,7 +40,7 @@ function isBlackjack(cards: Card[]) {
 }
 
 export default function BlackjackGameContainer() {
-  // state
+  // --- state (always runs; no early return before hooks) ---
   const [deck, setDeck] = React.useState<Card[]>([]);
   const [playerHand, setPlayerHand] = React.useState<Card[]>([]);
   const [dealerHand, setDealerHand] = React.useState<Card[]>([]);
@@ -54,7 +55,7 @@ export default function BlackjackGameContainer() {
   const { setBalance, balance } = useCommonStore();
   const { user } = useAuth();
 
-  // timeout management
+  // track timeouts to clear on unmount or new hand
   const timeoutsRef = React.useRef<number[]>([]);
   const clearQueuedTimeouts = React.useCallback(() => {
     for (const id of timeoutsRef.current) clearTimeout(id);
@@ -77,11 +78,12 @@ export default function BlackjackGameContainer() {
     return current;
   }, []);
 
+  // settle with payout messaging ("You win $XX")
   const settle = React.useCallback(
     (outcome: "WIN" | "LOSE" | "PUSH" | "BJ", betSize: number) => {
       const uid = user?.id;
       let delta = 0;
-      if (outcome === "WIN") delta = betSize * 2;    // return + 1x win
+      if (outcome === "WIN") delta = betSize * 2;    // return + win
       if (outcome === "BJ")  delta = betSize * 2.5;  // return + 1.5x
       if (outcome === "PUSH") delta = betSize * 1;   // return only
 
@@ -99,6 +101,7 @@ export default function BlackjackGameContainer() {
     [balance, setBalance, user?.id]
   );
 
+  // paced initial deal (cards enter then flip in UI via BJComponent)
   const onBet = React.useCallback(
     (betAmount: number) => {
       if (handInProgress) return;
@@ -130,13 +133,13 @@ export default function BlackjackGameContainer() {
       setStatus("dealt");
       setMessage("Dealing...");
 
-      // stagger deal
+      // stagger deal: P1 (0ms), D1 (300ms), P2 (600ms), D2 (900ms)
       queueTimeout(() => setPlayerHand([p1.card]), 0);
       queueTimeout(() => setDealerHand([d1.card]), 300);
       queueTimeout(() => setPlayerHand((h) => [...h, p2.card]), 600);
       queueTimeout(() => setDealerHand((h) => [...h, d2.card]), 900);
 
-      // post-deal: check blackjack
+      // after deal finishes, check blackjack / proceed
       queueTimeout(() => {
         const newPlayer = [p1.card, p2.card];
         const newDealer = [d1.card, d2.card];
@@ -159,6 +162,7 @@ export default function BlackjackGameContainer() {
     [handInProgress, balance, setBalance, user?.id, deck, startNewShoeIfNeeded, draw, settle, clearQueuedTimeouts, queueTimeout]
   );
 
+  // dealer plays with pacing (uses queueTimeout so we can clean up)
   const dealerPlay = React.useCallback(
     (dHand: Card[], dDeck: Card[], playerTotal: number) => {
       let hand = [...dHand];
@@ -172,6 +176,7 @@ export default function BlackjackGameContainer() {
           shoe = next.rest;
           setDealerHand([...hand]);
           setDeck([...shoe]);
+          // pace dealer hits (and allow cleanup)
           queueTimeout(step, 1000);
         } else {
           if (hv.total > 21) return settle("WIN", activeBet);
@@ -185,6 +190,7 @@ export default function BlackjackGameContainer() {
     [draw, settle, activeBet, queueTimeout]
   );
 
+  // define onStand BEFORE onHit (to avoid TDZ issues)
   const onStand = React.useCallback(() => {
     if (status !== "playerTurn" && status !== "dealt") return;
     const pVal = handValue(playerHand).total;
@@ -195,6 +201,7 @@ export default function BlackjackGameContainer() {
     dealerPlay(dealerHand, deck, pVal);
   }, [status, playerHand, dealerHand, deck, dealerPlay]);
 
+  // player actions
   const onHit = React.useCallback(() => {
     if (status !== "playerTurn" || !deck.length) return;
 
@@ -206,8 +213,10 @@ export default function BlackjackGameContainer() {
     const { total } = handValue(newHand);
     if (total > 21) {
       setDealerHidden(false);
+      // small pause so the flip lands before settle
       queueTimeout(() => settle("LOSE", activeBet), 700);
     } else if (total === 21) {
+      // short pause to let the flip land before dealer goes
       queueTimeout(() => onStand(), 400);
     } else {
       setMessage("Your turn: Hit, Stand, or Double Down.");
@@ -220,10 +229,12 @@ export default function BlackjackGameContainer() {
     const uid = user?.id;
     if (!uid) return;
 
+    // deduct extra bet now
     setBalance((balance ?? 0) - activeBet, uid);
     const newBet = activeBet * 2;
     setActiveBet(newBet);
 
+    // draw one, then stand (paced)
     const { card, rest } = draw(deck);
     const newHand = [...playerHand, card];
     setPlayerHand(newHand);
@@ -242,13 +253,15 @@ export default function BlackjackGameContainer() {
   const canStand = status === "playerTurn" || status === "dealt";
   const canDouble = status === "playerTurn" && playerHand.length === 2 && (balance ?? 0) >= activeBet;
 
-  // ✅ compute totals BEFORE JSX
-  const playerTotal = handValue(playerHand).total;
-  const dealerTotal = !dealerHidden ? handValue(dealerHand).total : undefined;
-
+  // --- render guard AFTER hooks (keeps hook order stable) ---
   if (!user) {
     return <div className="text-center p-4">Please log in to play Blackjack.</div>;
   }
+
+  // calculate hand totals
+  const playerTotal = handValue(playerHand).total;
+  const dealerTotal = !dealerHidden ? handValue(dealerHand).total : undefined;
+
 
   return (
     <div className="flex flex-col md:flex-row bg-background gap-4 md:gap-8 p-4 w-full max-w-6xl mx-auto">
@@ -257,21 +270,21 @@ export default function BlackjackGameContainer() {
       </div>
       <div className="w-full md:w-2/3">
         <BJComponent
-          playerHand={playerHand}
-          dealerHand={dealerHand}
-          dealerHidden={dealerHidden}
-          status={status}
-          message={message}
-          canHit={canHit}
-          canStand={canStand}
-          canDouble={canDouble}
-          onHit={onHit}
-          onStand={onStand}
-          onDouble={onDouble}
-          lastResults={lastResults}
-          playerTotal={playerTotal}
-          dealerTotal={dealerTotal}
-        />
+      playerHand={playerHand}
+      dealerHand={dealerHand}
+      dealerHidden={dealerHidden}
+      status={status}
+      message={message}
+      canHit={canHit}
+      canStand={canStand}
+      canDouble={canDouble}
+      onHit={onHit}
+      onStand={onStand}
+      onDouble={onDouble}
+      lastResults={lastResults}
+      playerTotal={playerTotal}
+      dealerTotal={dealerTotal}
+    />
       </div>
     </div>
   );
