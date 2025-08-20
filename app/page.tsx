@@ -14,6 +14,7 @@ const games = [
   { name: "MINES", link: "/mines", logo: <Gem size={48} />, img: "/assets/mines.png" },
   { name: "BLACKJACK", link: "/blackjack", logo: <Gem size={48} />, img: "/assets/blackjack.png" },
   { name: "DICE", link: "/dice", logo: <Rocket size={48} />, img: "/assets/dice.png" },
+  { name: "HILO", link: "/hilo", logo: <Rocket size={48} />, img: "/assets/hilo.png" },
   { name: "LIMBO", link: "/limbo", logo: <Rocket size={48} />, img: "/assets/limbo.avif" },
 ];
 
