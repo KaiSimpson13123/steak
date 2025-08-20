@@ -1,24 +1,15 @@
-export function calculateWinningAmount(
-  betAmount: number,
-  numberOfMines: number
-): number {
-  const totalTiles = 25;
-  const k = 1.5; // Scaling factor, adjust based on game balance
-  const multiplier = Math.pow(totalTiles / (totalTiles - numberOfMines), k);
-  const winningAmount = betAmount * multiplier;
-  return winningAmount;
+const TOTAL_TILES = 25;
+const MAX_MULTIPLIER = 14;
+
+export function calculateWinningAmount(betAmount: number, selectedTiles: number, mines: number): number {
+  const multiplier = calculateMultiplier(selectedTiles, mines);
+  return Number((betAmount * multiplier).toFixed(2));
 }
 
 export function calculatePerMineMultiplier(numberOfMines: number): number {
   if (numberOfMines <= 0) return 1;
-
-  // Base multiplier increase per mine (small number)
-  const base = 0.2; 
-
-  // Add diminishing returns so more mines don't explode the multiplier
-  const perMineMultiplier = 1 + base * Math.log2(numberOfMines + 1);
-
-  return perMineMultiplier;
+  const base = 0.15; // small incremental increase
+  return 1 + base * Math.log2(numberOfMines + 1);
 }
 
 
@@ -38,33 +29,29 @@ export function calculateCurrentProfit(
   return profit;
 }
 
-export function calculateMultiplier(
-  selectedTiles: number,
-  mines: number
-): number {
-  const TOTAL_TILES = 25;
-  const BASE_MULTIPLIER = 1.03;
-  const RISK_FACTOR = 1.2;
-
+export function calculateMultiplier(selectedTiles: number, mines: number): number {
   if (
     selectedTiles < 1 ||
-    selectedTiles > 24 ||
+    selectedTiles > TOTAL_TILES - 1 ||
     mines < 1 ||
     mines > TOTAL_TILES - selectedTiles
   ) {
     throw new Error("Invalid number of selected tiles or mines");
   }
 
-  // Calculate probability-based multiplier
-  const probability = 1 - mines / (TOTAL_TILES - selectedTiles + 1);
-  const baseMultiplier = BASE_MULTIPLIER + (1 - probability) * RISK_FACTOR;
+  // Probability of not hitting a mine
+  const probability = 1 - mines / TOTAL_TILES;
 
-  // Apply exponential scaling based on selected tiles and mines
-  const multiplier =
-    Math.pow(baseMultiplier, selectedTiles) *
-    Math.pow(1 + mines / TOTAL_TILES, selectedTiles);
+  // Base multiplier grows slowly with each successful click
+  const BASE_INCREMENT = 1.05; // 5% per safe tile
+  let multiplier = Math.pow(BASE_INCREMENT, selectedTiles) * (1 + mines / TOTAL_TILES);
 
-  // Round to 2 decimal places
+  // Factor in probability but prevent runaway scaling
+  multiplier *= probability * 1.5;
+
+  // Cap multiplier
+  multiplier = Math.min(multiplier, MAX_MULTIPLIER);
+
   return Number(multiplier.toFixed(2));
 }
 
