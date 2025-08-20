@@ -87,12 +87,20 @@ export default function Navbar() {
                 </button>
               </div>
             ) : (
+              <>
               <button
                 onClick={() => router.push("/login")}
                 className="bg-success hover:bg-success px-3 py-1 rounded font-semibold"
               >
                 Login
               </button>
+              <button
+                onClick={() => router.push("/signup")}
+                className="bg-success hover:bg-success px-3 py-1 rounded font-semibold"
+              >
+                Signup
+              </button>
+              </>
             )}
           </div>
         </div>
