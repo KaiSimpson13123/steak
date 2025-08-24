@@ -85,12 +85,12 @@ export default function AdminPage() {
     }
 
     const res = await fetch("/api/admin/ip-logs", {
-      method: "POST",
-      headers: {
+    method: "POST",
+    headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`, // used server-side to identify SmacklePackle
-      },
-      body: JSON.stringify({ username }),
+        Authorization: `Bearer ${token}`,      // ✅ key line
+    },
+    body: JSON.stringify({ username }),
     });
 
     if (!res.ok) {

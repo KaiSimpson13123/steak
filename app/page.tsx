@@ -107,29 +107,31 @@ export default function Home() {
     loggedOnceRef.current = true;
 
     (async () => {
-      // Get the current session/access token
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        console.warn("No access token; skipping visit log");
-        return;
-      }
+    if (!user) return;
 
-      const path =
-        typeof window !== "undefined" ? window.location.pathname : "/";
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) return; // not logged in
 
-      fetch(`/api/visit?path=${encodeURIComponent(path)}`, {
+    const path = typeof window !== "undefined" ? window.location.pathname : "/";
+
+    try {
+      const res = await fetch(`/api/visit?path=${encodeURIComponent(path)}`, {
         method: "POST",
-        credentials: "same-origin",               // send cookies too (harmless/ok)
         headers: {
           Accept: "application/json",
-          Authorization: `Bearer ${session.access_token}`, // ✅ key line
+          Authorization: `Bearer ${token}`,   // ✅ key line
         },
         cache: "no-store",
-      })
-        .then((r) => (r.ok ? r.json() : r.json().then(Promise.reject)))
-        .then((j) => console.debug("visit logged:", j))
-        .catch((e) => console.error("visit log failed:", e));
-    })();
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j?.error || `HTTP ${res.status}`);
+      }
+    } catch (e) {
+      console.error("visit log failed:", e);
+    }
+  })();
   }, [user]);
 
 const generateQuestion = () => {
