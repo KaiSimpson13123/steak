@@ -1,5 +1,7 @@
 "use client";
 
+{/* fuck off isaac */}
+
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
