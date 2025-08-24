@@ -5,6 +5,7 @@ import Navbar from "./_components/Navbar";
 import { Analytics } from "@vercel/analytics/next";
 import Footer from "./_components/Footer";
 import { AuthProvider } from "@/components/AuthProvider";
+import BlockGuard from "./_components/BlockGuard";
 
 const inter = Geist({ subsets: ["latin"] });
 
@@ -56,10 +57,12 @@ export default function RootLayout({
       <body className={inter.className}>
         {/* Wrap everything in AuthProvider */}
         <AuthProvider>
-          <Navbar />
-          {children}
-          <Analytics />
-          <Footer />
+          <BlockGuard>
+            <Navbar />
+              {children}
+              <Analytics />
+            <Footer />
+          </BlockGuard>
         </AuthProvider>
       </body>
     </html>

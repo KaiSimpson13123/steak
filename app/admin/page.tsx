@@ -30,6 +30,30 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const [pendingIp, setPendingIp] = useState<string | null>(null);
+
+  const handleBlockIp = async (ip: string) => {
+  try {
+    setPendingIp(ip);
+    await adminBlockIp(ip, "block");
+    // optional: set a success message or toast here
+  } catch (e) {
+    setErrorMsg((e as Error)?.message || "Failed to block IP");
+  } finally {
+    setPendingIp(null);
+  }
+};
+
+const handleUnblockIp = async (ip: string) => {
+  try {
+    setPendingIp(ip);
+    await adminBlockIp(ip, "unblock");
+  } catch (e) {
+    setErrorMsg((e as Error)?.message || "Failed to unblock IP");
+  } finally {
+    setPendingIp(null);
+  }
+};
 
   // Protect page on mount
   useEffect(() => {
@@ -69,6 +93,22 @@ export default function AdminPage() {
     if (!f) return users;
     return users.filter((u) => u.username?.toLowerCase().includes(f));
   }, [users, filter]);
+
+  async function adminBlockIp(ip: string, action: "block" | "unblock", note?: string) {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("No access token");
+    const res = await fetch("/api/admin/block-ip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ip, action, note }),
+    });
+    if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j?.error || `HTTP ${res.status}`);
+    }
+    return res.json();
+    }
 
   // Fetch logs for selected user via the secure API route
   const fetchLogs = async (username: string) => {
@@ -178,6 +218,7 @@ export default function AdminPage() {
                 <th className="px-4 py-2">User Agent</th>
                 <th className="px-4 py-2">Lang</th>
                 <th className="px-4 py-2">Referer</th>
+                <th className="px-4 py-2">Action</th>
             </tr>
             </thead>
 
@@ -186,7 +227,7 @@ export default function AdminPage() {
                 if (loadingLogs) {
                 return (
                     <tr key="loading">
-                    <td className="px-4 py-3" colSpan={7}>Loading logs…</td>
+                    <td className="px-4 py-3" colSpan={8}>Loading logs…</td>
                     </tr>
                 );
                 }
@@ -194,7 +235,7 @@ export default function AdminPage() {
                 if (logs.length === 0) {
                 return (
                     <tr key="empty">
-                    <td className="px-4 py-3" colSpan={7}>
+                    <td className="px-4 py-3" colSpan={8}>
                         No logs for <span className="font-semibold">{selectedUsername}</span>.
                     </td>
                     </tr>
@@ -227,6 +268,26 @@ export default function AdminPage() {
                     <td key="ua" className="px-4 py-2 truncate max-w-xs">{log.user_agent}</td>,
                     <td key="lang" className="px-4 py-2">{log.accept_language}</td>,
                     <td key="ref" className="px-4 py-2">{log.referer}</td>,
+                    <td key="action" className="px-4 py-2">
+                        <div className="flex gap-2">
+                        <button
+                            onClick={() => handleBlockIp(log.ip)}
+                            disabled={pendingIp === log.ip}
+                            className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 disabled:opacity-60"
+                            title="Block this IP"
+                        >
+                            {pendingIp === log.ip ? "Blocking…" : "Block"}
+                        </button>
+                        <button
+                            onClick={() => handleUnblockIp(log.ip)}
+                            disabled={pendingIp === log.ip}
+                            className="px-3 py-1 rounded bg-gray-600 hover:bg-gray-700 disabled:opacity-60"
+                            title="Unblock this IP"
+                        >
+                            {pendingIp === log.ip ? "…" : "Unblock"}
+                        </button>
+                        </div>
+                    </td>,
                 ];
 
                 return (
