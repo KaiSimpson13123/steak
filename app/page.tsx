@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Gamepad2, Gem, Rocket } from "lucide-react";
 import Link from "next/link";
 import { useCommonStore } from "@/app/_store/commonStore";
@@ -41,6 +41,8 @@ export default function Home() {
   const [leaderboard, setLeaderboard] = useState<{ username: string; balance: number }[]>([]);
 
   const [isSuper, setIsSuper] = useState(false);
+
+  const loggedOnceRef = useRef(false);
 
   useEffect(() => {
   if (!user) return;
@@ -98,6 +100,37 @@ export default function Home() {
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    if (loggedOnceRef.current) return;
+    loggedOnceRef.current = true;
+
+    (async () => {
+      // Get the current session/access token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.warn("No access token; skipping visit log");
+        return;
+      }
+
+      const path =
+        typeof window !== "undefined" ? window.location.pathname : "/";
+
+      fetch(`/api/visit?path=${encodeURIComponent(path)}`, {
+        method: "POST",
+        credentials: "same-origin",               // send cookies too (harmless/ok)
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${session.access_token}`, // ✅ key line
+        },
+        cache: "no-store",
+      })
+        .then((r) => (r.ok ? r.json() : r.json().then(Promise.reject)))
+        .then((j) => console.debug("visit logged:", j))
+        .catch((e) => console.error("visit log failed:", e));
+    })();
+  }, [user]);
 
 const generateQuestion = () => {
     setNum1(Math.floor(Math.random() * 20) + 1);
