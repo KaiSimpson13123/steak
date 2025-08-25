@@ -38,7 +38,7 @@ export default function GridComponent() {
       // ignore modifier-only keys
       if (e.key.length !== 1) return;
       buffer = (buffer + e.key).toUpperCase().slice(-4);
-      if (buffer === "SKIB") {
+      if (buffer === "NIGG") {
         setShowEyes((s) => !s);
         buffer = "";
       }
