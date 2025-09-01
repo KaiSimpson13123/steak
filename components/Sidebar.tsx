@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { X, Home as HomeIcon, Gamepad2, Gift, Ticket, Trophy, Settings, Beef } from "lucide-react";
+import { X, Home as HomeIcon, Gamepad2, Gift, Ticket, Trophy, Settings, Beef, SendIcon, Crown } from "lucide-react";
 import React from "react";
 
 type RecentBet = {
@@ -83,6 +83,8 @@ export default function Sidebar({
           <SideLink icon={<Gift size={18} />} label="Rewards" href="#rewards" onAnchorClick={onAnchorClick} />
           <SideLink icon={<Ticket size={18} />} label="Promo" href="#promo" onAnchorClick={onAnchorClick} />
           <SideLink icon={<Trophy size={18} />} label="Leaderboard" href="#leaderboard" onAnchorClick={onAnchorClick} />
+          <SideLink icon={<SendIcon size={18} />} label="Send Steaks" href="/give" />
+          <SideLink icon={<Crown size={18} />} label="Clubs" href="/clubs" />
           <SideLink icon={<Settings size={18} />} label="Settings" href="/settings" />
         </nav>
 
