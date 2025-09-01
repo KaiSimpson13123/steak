@@ -518,7 +518,7 @@ export default function Home() {
                 <p className="text-sm md:text-base text-emerald-100/90">
                   <span className="font-semibold text-emerald-200">Season 2 is underway!</span>{" "}
                   Use code <span className="font-mono font-bold tracking-wide text-emerald-300">SEASON2</span> for{" "}
-                  <span className="font-semibold text-emerald-200">500 Steaks</span>.
+                  <span className="font-semibold text-emerald-200">10000 Steaks</span>.
                 </p>
 
                 <div className="flex items-center gap-2 md:ml-auto">
