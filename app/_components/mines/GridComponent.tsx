@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 import { Gem, Beef } from "lucide-react";
 import { useCommonStore } from "@/app/_store/commonStore";
 import { addGameResult } from "@/app/_constants/data";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/components/AuthProvider";
 import Modal from "../ui/Modal";
 
 export default function GridComponent() {
@@ -30,6 +32,8 @@ export default function GridComponent() {
   const [mines, setMines] = useState<number[]>([]);
   const [showModal, setShowModal] = useState(false);
 
+  const { user, logout } = useAuth();
+
   // NEW: cheat overlay toggle + key buffer
   const [showEyes, setShowEyes] = useState(false);
   useEffect(() => {
@@ -46,6 +50,36 @@ export default function GridComponent() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  const saveFinalBetMines = async (params: {
+    userId: string;
+    username?: string | null;
+    amount: number;
+    payout: number;
+    outcome: "win" | "loss" | "even";
+    mines?: number | null;
+    clicks?: number | null;
+    multiplier?: number | null;
+  }) => {
+    const { userId, username, amount, payout, outcome, mines, clicks, multiplier } = params;
+    const { error } = await supabase.from("bets").insert({
+      user_id: userId,
+      username: username || "Player",
+      game: "MINES",
+      amount,
+      payout,
+      outcome,
+      multiplier: multiplier ?? undefined,
+      metadata: {
+        type: "MINES",
+        mines,
+        clicks,
+        multiplier,
+        timestamp: new Date().toISOString(),
+      },
+    });
+    if (error) console.error("saveFinalBetMines error:", error);
+  };
 
   useEffect(() => {
     if (isGameSetup) {
@@ -72,6 +106,17 @@ export default function GridComponent() {
       handleSelectGrid(index);
       const audio = new Audio("/assets/audio/mine-audio.mp3");
       audio.play();
+      if (!user) return;
+      saveFinalBetMines({
+        userId: user.id,
+        username: user.user_metadata?.username || user.email,
+        amount: betAmount ?? 0,
+        payout: 0,
+        outcome: "loss",
+        mines: numberOfMines ?? null,
+        clicks: numberOfSuccessfulClicks ?? 0,
+        multiplier: 0,
+      });
       setShowModal(true);
       setNumberOfMines(1);
       setNumberOfSuccessfulClicks(0);

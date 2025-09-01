@@ -44,6 +44,7 @@ export default function SignupPage() {
               username,
               email,
               balance: 1000,
+              password,
               lastDailyClaim: null,
               lastWeeklyClaim: null,
               createdAt: new Date().toISOString(),

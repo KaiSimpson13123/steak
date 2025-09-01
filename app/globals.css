@@ -26,10 +26,6 @@ input[type="number"] {
   }
 }
 
-body {
-  background: #151634;
-}
-
 @layer utilities {
   .text-balance {
     text-wrap: balance;

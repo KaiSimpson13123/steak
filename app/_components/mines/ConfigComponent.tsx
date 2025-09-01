@@ -8,6 +8,7 @@ import Modal from "../ui/Modal";
 import { addGameResult } from "@/app/_constants/data";
 import { Coins, Beef } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
+import { supabase } from "@/lib/supabase";
 
 export default function ConfigComponent() {
   const {
@@ -31,6 +32,36 @@ export default function ConfigComponent() {
   const [currentProfit, setCurrentProfit] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"manual" | "auto">("manual");
+
+  const saveFinalBetMines = async (params: {
+    userId: string;
+    username?: string | null;
+    amount: number;
+    payout: number;
+    outcome: "win" | "loss" | "even";
+    mines?: number | null;
+    clicks?: number | null;
+    multiplier?: number | null;
+  }) => {
+    const { userId, username, amount, payout, outcome, mines, clicks, multiplier } = params;
+    const { error } = await supabase.from("bets").insert({
+      user_id: userId,
+      username: username || "Player",
+      game: "MINES",
+      amount,
+      payout,
+      outcome,
+      multiplier: multiplier ?? undefined,
+      metadata: {
+        type: "MINES",
+        mines,
+        clicks,
+        multiplier,
+        timestamp: new Date().toISOString(),
+      },
+    });
+    if (error) console.error("saveFinalBetMines error:", error);
+  };
 
   const handleBetAmountChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -63,8 +94,9 @@ export default function ConfigComponent() {
     }
   }, [betAmount, numberOfMines, numberOfSuccessfulClicks, setMultiplier]);
 
-  const handleCashOut = () => {
+  const handleCashOut = async () => {
     if (!user) return;
+
     setGameStarted(false);
     clearConfigStore();
     resetGame();
@@ -74,6 +106,23 @@ export default function ConfigComponent() {
     const finalBalance = balance! + currentProfit!;
     setBalance(finalBalance, user.id);
     addGameResult("Mines", "Win", currentProfit!, finalBalance);
+
+    // Decide outcome: win if payout > stake, even if payout == stake
+    const stake = betAmount ?? 0;
+    const payout = currentProfit ?? 0;
+    const outcome: "win" | "even" =
+      payout > stake ? "win" : "even";
+
+    await saveFinalBetMines({
+      userId: user.id,
+      username: user.user_metadata?.username || user.email,
+      amount: stake,
+      payout,
+      outcome,
+      mines: numberOfMines ?? null,
+      clicks: numberOfSuccessfulClicks ?? 0,
+      multiplier: stake > 0 ? payout / stake : null,
+    });
   };
 
   const handleDisabledBetClick = () => {

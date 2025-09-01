@@ -1,6 +1,7 @@
 "use client";
 import { useCommonStore } from "@/app/_store/commonStore";
 import { Beef } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import React from "react";
 
 export default function ConfigForBJ({
@@ -32,6 +33,29 @@ export default function ConfigForBJ({
       setBetAmount(0);
       setError("");
     }
+  };
+
+    const saveFinalBetBJ = async (params: {
+    userId: string;
+    username?: string | null;
+    amount: number;
+    payout: number;
+    outcome: "win" | "loss" | "even";
+  }) => {
+    const { userId, username, amount, payout, outcome } = params;
+    const { error } = await supabase.from("bets").insert({
+      user_id: userId,
+      username: username || "Player",
+      game: "BLACKJACK",
+      amount,
+      payout,
+      outcome, // only 'win' | 'lose' | 'even'
+      metadata: {
+        type: "BLACKJACK",
+        timestamp: new Date().toISOString(),
+      },
+    });
+    if (error) console.error("saveFinalBetBJ error:", error);
   };
 
   const handleHalfAmount = () => {

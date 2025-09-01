@@ -4,6 +4,8 @@ import ConfigForBJ from "./ConfigForBJ";
 import BJComponent, { Card } from "./BJComponent";
 import { useCommonStore } from "@/app/_store/commonStore";
 import { useAuth } from "@/components/AuthProvider";
+import { supabase } from "@/lib/supabase";
+
 // framer-motion imported in BJComponent for animations
 
 type Status = "idle" | "dealt" | "playerTurn" | "dealerTurn" | "settled";
@@ -78,6 +80,36 @@ export default function BlackjackGameContainer() {
     return current;
   }, []);
 
+    // Save a finalized Blackjack bet (only once outcome is known)
+  const saveFinalBetBJ = async (params: {
+    userId: string;
+    username?: string | null;
+    amount: number;
+    payout: number;
+    outcome: "win" | "loss" | "even";
+    playerHand: Card[];
+    dealerHand: Card[];
+  }) => {
+    const { userId, username, amount, payout, outcome, playerHand, dealerHand } = params;
+    const { error } = await supabase.from("bets").insert({
+      user_id: userId,
+      username: username || "Player",
+      game: "BLACKJACK",
+      amount,
+      payout,
+      outcome, // only "win" | "lose" | "even"
+      metadata: {
+        type: "BLACKJACK",
+        playerHand,
+        dealerHand,
+        timestamp: new Date().toISOString(),
+      },
+    });
+
+    if (error) console.error("saveFinalBetBJ error:", error);
+  };
+
+
   // settle with payout messaging ("You win $XX")
   const settle = React.useCallback(
     (outcome: "WIN" | "LOSE" | "PUSH" | "BJ", betSize: number) => {
@@ -97,8 +129,25 @@ export default function BlackjackGameContainer() {
       if (outcome === "BJ" || outcome === "WIN") setMessage(`You win $${delta.toFixed(2)}`);
       else if (outcome === "PUSH") setMessage("Tie. Your bet is returned.");
       else setMessage("You lose.");
+
+      // Normalize to win/lose/even
+      const finalOutcome: "win" | "loss" | "even" =
+        outcome === "WIN" || outcome === "BJ" ? "win" :
+        outcome === "PUSH" ? "even" : "loss";
+
+      if (uid) {
+        saveFinalBetBJ({
+          userId: uid,
+          username: user?.user_metadata?.username || user?.email,
+          amount: betSize,
+          payout: delta,
+          outcome: finalOutcome,
+          playerHand,
+          dealerHand,
+        });
+      }
     },
-    [balance, setBalance, user?.id]
+    [balance, setBalance, user?.id, user?.user_metadata?.username, user?.email,]
   );
 
   // paced initial deal (cards enter then flip in UI via BJComponent)

@@ -4,51 +4,112 @@ import ConfigForDice from "./ConfigForDice";
 import DiceComponent from "./DiceComponent";
 import { useCommonStore } from "@/app/_store/commonStore";
 import { useAuth } from "@/components/AuthProvider";
+import { supabase } from "@/lib/supabase"; // 👈 add this
 
 function DiceGameContainer() {
   const [multiplier, setMultiplier] = React.useState<number>(2);
   const [gameStarted, setGameStarted] = React.useState<boolean>(false);
   const [targetNumber, setTargetNumber] = React.useState<number>(0);
-  const [value, setValue] = React.useState([50]);
+  const [value, setValue] = React.useState([50]); // threshold slider (0..100)
   const [winChance, setWinChance] = React.useState(50);
   const [result, setResult] = React.useState<
-    | {
-        isWin: boolean;
-        randomNumber: number;
-      }[]
+    { isWin: boolean; randomNumber: number }[]
   >([]);
   const { setBalance, balance } = useCommonStore();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
-  if (!user) return;
+  // (optional) show a message instead of returning undefined
+  if (!user) return <div className="p-4 text-center">Please log in to play Dice.</div>;
 
-  const handleBet = (betAmount: number) => {
+  // Save a finalized Dice bet (no pending)
+  const saveFinalBetDice = async (params: {
+    userId: string;
+    username?: string | null;
+    amount: number;
+    payout: number;
+    outcome: "win" | "loss";
+    roll: number;
+    threshold: number;
+    winChance: number;
+    multiplier: number;
+  }) => {
+    const {
+      userId, username, amount, payout, outcome,
+      roll, threshold, winChance, multiplier
+    } = params;
+
+    const { error } = await supabase.from("bets").insert({
+      user_id: userId,
+      username: username || "Player",
+      game: "DICE",
+      amount,          // stake
+      payout,          // amount returned to balance (0 on loss, stake*multiplier on win)
+      outcome,         // 'win' | 'loss'  (use 'loss' to match your enum)
+      multiplier,
+      metadata: {
+        type: "DICE",
+        roll,          // the RNG result (1..100)
+        threshold,     // the chosen target (value[0])
+        winChance,
+        direction: "over", // since you're using randomNumber > threshold
+        timestamp: new Date().toISOString(),
+      },
+    });
+    if (error) console.error("saveFinalBetDice error:", error);
+  };
+
+  const handleBet = async (betAmount: number) => {
     // Validate bet amount
-    if (betAmount <= 0 || betAmount > balance) {
+    if (betAmount <= 0 || betAmount > (balance ?? 0)) {
       return;
     }
 
-    // Deduct bet amount upfront
-    const newBalanceAfterBet = balance - betAmount;
+    // Deduct stake upfront
+    const newBalanceAfterBet = (balance ?? 0) - betAmount;
     setBalance(newBalanceAfterBet, user.id);
-    console.log(`user id: ${user.id}`);
 
+    // Roll
     const randomNumber = Math.floor(Math.random() * 100) + 1;
     setTargetNumber(randomNumber);
     setGameStarted(true);
 
-    // Determine win/loss based on the random number compared to selected value
-    const isWin = randomNumber > value[0];
+    // Win if roll > threshold (value[0])
+    const threshold = value[0];
+    const isWin = randomNumber > threshold;
 
     if (isWin) {
-      // Player wins - add winnings to already reduced balance
-      const winnings = betAmount * multiplier;
-      const finalBalance = newBalanceAfterBet + winnings;
+      const payout = betAmount * multiplier; // amount returned to balance
+      const finalBalance = newBalanceAfterBet + payout;
       setBalance(finalBalance, user.id);
-      setResult([...result, { isWin: true, randomNumber }]);
+      setResult((r) => [...r, { isWin: true, randomNumber }]);
+
+      // Save finalized WIN
+      await saveFinalBetDice({
+        userId: user.id,
+        username: user.user_metadata?.username || user.email,
+        amount: betAmount,
+        payout,
+        outcome: "win",
+        roll: randomNumber,
+        threshold,
+        winChance,
+        multiplier,
+      });
     } else {
-      // Player loses - bet was already deducted
-      setResult([...result, { isWin: false, randomNumber }]);
+      setResult((r) => [...r, { isWin: false, randomNumber }]);
+
+      // Save finalized LOSS
+      await saveFinalBetDice({
+        userId: user.id,
+        username: user.user_metadata?.username || user.email,
+        amount: betAmount,
+        payout: 0,
+        outcome: "loss", // IMPORTANT: use 'loss' to match your enum
+        roll: randomNumber,
+        threshold,
+        winChance,
+        multiplier,
+      });
     }
   };
 
