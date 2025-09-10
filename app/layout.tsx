@@ -59,7 +59,8 @@ export default function RootLayout({
         <AuthProvider>
           <BlockGuard>
             <Navbar />
-              {children}
+            <h1>403</h1>
+            {/* {children} */}
               <Analytics />
             <Footer />
           </BlockGuard>
