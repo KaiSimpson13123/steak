@@ -12,7 +12,7 @@ const inter = Geist({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Steak",
   description:
-    "Experience the thrill of casino games like Mines and more without risking real money. Practice and perfect your strategies in a risk-free environment.",
+    "Experience the thrill of games like Mines and more. Practice and perfect your strategies in a risk-free environment.",
   keywords: [
     "fake stake",
     "practice casino games",
@@ -21,9 +21,9 @@ export const metadata: Metadata = {
     "risk-free gaming",
   ],
   openGraph: {
-    title: "Fake Stake - Risk-Free Casino Gaming Experience",
+    title: "Steak",
     description:
-      "Play casino games with virtual currency. Perfect for learning and entertainment without financial risk.",
+      "Play games with virtual currency. Perfect for learning and entertainment.",
     type: "website",
     locale: "en_US",
     url: "https://fakestake.vercel.app",
@@ -38,8 +38,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Fake Stake - Virtual Casino Gaming",
-    description: "Experience risk-free casino gaming with virtual currency",
+    title: "Steak",
+    description: "Experience risk-free gaming with virtual currency",
     images: ["/assets/stake-logo.svg"],
   },
   icons: {
@@ -58,11 +58,12 @@ export default function RootLayout({
         {/* Wrap everything in AuthProvider */}
         <AuthProvider>
           <BlockGuard>
-            <Navbar />
+            {/* <Navbar /> */}
             <h1>403</h1>
+            <h2>We apologise, but your access to this resource has been blocked.</h2>
             {/* {children} */}
               <Analytics />
-            <Footer />
+            {/* <Footer /> */}
           </BlockGuard>
         </AuthProvider>
       </body>
