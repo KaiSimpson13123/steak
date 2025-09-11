@@ -58,12 +58,10 @@ export default function RootLayout({
         {/* Wrap everything in AuthProvider */}
         <AuthProvider>
           <BlockGuard>
-            {/* <Navbar /> */}
-            <h1>403</h1>
-            <h2>We apologise, but your access to this resource has been blocked.</h2>
-            {/* {children} */}
+            <Navbar/>
+            {children}
               <Analytics />
-            {/* <Footer /> */}
+            <Footer />
           </BlockGuard>
         </AuthProvider>
       </body>
